@@ -1,0 +1,25 @@
+{
+    "configurations": [
+        {
+            "name": "arduino",
+            "includePath": [
+                "${workspaceFolder}/../**",
+                "/usr/share/arduino/hardware/arduino/cores/arduino/**",
+                "/usr/share/arduino/hardware/tools/avr/lib/avr/include/avr/**"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "gnu18",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "gcc-x64",
+            "browse": {
+                "path": [
+                    "/home/jonas/arduinoide",
+                    "/usr/share/arduino/hardware/arduino/cores/arduino",
+                    "/usr/share/arduino/hardware/tools/avr/lib/avr/include/avr"
+                ]
+            }
+        }
+    ],
+    "version": 4
+}
