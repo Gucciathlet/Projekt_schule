@@ -25,22 +25,34 @@ LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);
 
 #define YP A3  // must be an analog pin, use "An" notation!
 #define XM A2  // must be an analog pin, use "An" notation!
-#define YM 9   // can be a digital pin
-#define XP 8   // can be a digital pin
+#define YM 9   //9 can be a digital pin
+#define XP 8   //8 can be a digital pin
 
 #define TS_MINX 906
 #define TS_MAXX 116
 
 #define TS_MINY 92
 #define TS_MAXY 952
+
 // We have a status line for like, is FONA working
 #define STATUS_X 10
 #define STATUS_Y 65
+
+//PWM Motor pins
+#define pwmPin1 44
+#define pwmPin2 45
+#define pwmPin3 46
+
 //Menue shit 
 #define menue_options 7
 #define info_menue_options 3
 #define menue_Xoffset 15
 bool switch_flag1 = false;
+int menue_toggle[menue_options];
+
+//system time 
+unsigned long time;
+#define break_time 350
 
 
 TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
@@ -83,6 +95,7 @@ void setup(void)
     my_lcd.Fill_Screen(BACKGROUND); 
 
     //Declarations
+    time = 0;
     char* menue_names [menue_options]=
         {
             "Setting 1", 
@@ -100,6 +113,7 @@ void setup(void)
             "Feuchtigkeit:",
             "Helligkeit:  "
         };
+
     //Show title
     show_string("Steuerung", 40, 5, 4, BLACK, BLACK, true);
 
@@ -110,6 +124,9 @@ void setup(void)
         my_lcd.Set_Draw_color(BLACK);
         my_lcd.Draw_Fast_HLine( 0, 30 * (a + 1) + 65, my_lcd.Get_Display_Width());
         show_picture(switch_off_2, sizeof(switch_off_2)/2, menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 269, 30 * (a + 1) + 64);
+
+        //Filling array with 0 (offline) for diffrent functions
+        menue_toggle[a] = 0;
     }
 
     //Draw Info-Menue (temp, feuchtigkeit, helligkeit)
@@ -117,6 +134,7 @@ void setup(void)
     {
         show_string(info_menue[a], menue_Xoffset, 30 * (a + 1) + (menue_options * 30) + 60, 3, BLACK, BLACK, true);
     }
+
 }
 
 
@@ -129,32 +147,33 @@ void loop(void)
     pinMode(XM, OUTPUT);
     pinMode(YP, OUTPUT);
 
-    //Temp, Feuchtigkeit u Helligkeit einlesen
-    
 
     //if you pressed with the correct pressure
-    if (p.z > MINPRESSURE && p.z < MAXPRESSURE)
+
+    if (time + break_time <= millis() && p.z > MINPRESSURE && p.z < MAXPRESSURE)
     {
         p.x = map(p.x, TS_MINX, TS_MAXX, my_lcd.Get_Display_Width(),0);
         p.y = map(p.y, TS_MINY, TS_MAXY, my_lcd.Get_Display_Height(),0);
 
-    //Area where to press
+        //Area where to press
         for (int a = 0; a < menue_options; a++)
         {
             if(is_pressed(menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 269, 30 * (a + 1) + 64, p.x,p.y))
             {
+                
                 if(switch_flag1)
                     {   
                         show_picture(switch_off_2, sizeof(switch_off_2)/2, menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 269, 30 * (a + 1) + 64);
                         switch_flag1 = false;
-                        delay(500);
                     }
                     else
                     {  
                         show_picture(switch_on_2, sizeof(switch_on_2)/2, menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 269, 30 * (a + 1) + 64);
                         switch_flag1 = true;
-                        delay(500);
+                        
                     }
+                // get system time 
+                time = millis();
             }
         }
     }
