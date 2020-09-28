@@ -3,6 +3,7 @@
 #include "TouchScreen.h"                                //touch library
 #include "LCDWIKI_GUI.h"                                //Core graphics library
 #include "LCDWIKI_KBV.h"                                //Hardware-specific library
+#include "SimpleDHT.h"                                  //Temp / humidity sensor
 #include "switch_font.c"                                //Writing font and imported Pictures
 LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);             // Length and width for Display
 
@@ -41,7 +42,7 @@ LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);             // Length and width for 
 //PWM Motor pins
 #define pwmPin1 44
 #define pwmPin2 45
-#define pwmPin3 46
+
 
 //Menue shit 
 #define menue_options 7                                 //Ammount of Options for first Menue
@@ -50,8 +51,16 @@ LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);             // Length and width for 
 bool switch_flag1 = false;              
 bool menue_toggle[menue_options];                       //Array, if menue option is toggled 
 
+//Temp, humidity Sensor
+#define pinBrightness 49                                //Input Pin for Brightness 
+#define pinDHT22 47                                     //Data Pin for Temp, Humidity Sensor                                       
+SimpleDHT22 dht22(pinDHT22);  
+char temp[10];                                          //string for Temp output 
+char hum[10];                                           //string for humidity output
+
 //system time 
-unsigned long time;
+unsigned long time;                                     //Time for On/off buttons
+unsigned long time1;                                    //Time for Temp, Humidity Sensor
 #define break_time 350
 
 
@@ -72,7 +81,6 @@ void show_picture(const uint8_t *color_buf,int16_t buf_size,int16_t x1,int16_t y
     my_lcd.Push_Any_Color(color_buf, buf_size, 1, 1);
     }
 
-
 //Check whether to press or not
 bool is_pressed(int16_t x1,int16_t y1,int16_t x2,int16_t y2,int16_t px,int16_t py){
     if((px > x1 && px < x2) && (py > y1 && py < y2))
@@ -88,14 +96,21 @@ bool is_pressed(int16_t x1,int16_t y1,int16_t x2,int16_t y2,int16_t px,int16_t p
 void setup(void) 
 {    
     //Initialize Screen
-    Serial.begin(9600);
-    my_lcd.Init_LCD();
-    Serial.println(my_lcd.Read_ID(), HEX);
+    Serial.begin(9600);                                     //Communication Refresh rate
+    my_lcd.Init_LCD();                                          
+    Serial.println(my_lcd.Read_ID(), HEX);                  //LCD display
+
+    //set Input / output pin
+    pinMode(pinBrightness, INPUT);                          //For brightness
+
     //Colour of the Background 
     my_lcd.Fill_Screen(BACKGROUND); 
 
     //Declarations
-    time = 0;
+    time = 0;                                               //time for on/off buttons
+    time1 = 0;                                              //time for Temp, Humidity Sensor
+
+
     char* menue_names [menue_options]=
         {
             "Setting 1", 
@@ -109,9 +124,9 @@ void setup(void)
     
     char* info_menue[info_menue_options]=
         {
-            "Temperatur:  ",
-            "Feuchtigkeit:",
-            "Helligkeit:  "
+            "Temperatur:",
+            "Feuchte   :",
+            "Modus     :"
         };
 
 
@@ -152,6 +167,58 @@ void loop(void)
     if (menue_toggle[1] == true)
     {
 
+    }
+    
+
+    //Temp, Humidity Sensor
+    // read without samples.
+    // @remark We use read2 to get a float data, such as 10.1*C
+    //    if user doesn't care about the accurate data, use read to get a byte data, such as 10*C.
+    float temperature = 0;
+    float humidity = 0;
+    int brightness = 0;
+    int err = SimpleDHTErrSuccess;
+
+    if (time1 + 2500 <= millis())
+    {
+        //draw over old input a rectangle
+        my_lcd.Set_Draw_color(RED);
+        my_lcd.Fill_Rectangle(menue_Xoffset + 197, 30 * 1 + (menue_options * 30) + 60, menue_Xoffset + 300, 30 * 1 + (menue_options * 30) + 85);    //Temp overwrite
+        my_lcd.Fill_Rectangle(menue_Xoffset + 197, 30 * 2 + (menue_options * 30) + 60, menue_Xoffset + 300, 30 * 2 + (menue_options * 30) + 85);    //Hum overwrite
+        my_lcd.Fill_Rectangle(menue_Xoffset + 197, 30 * 3 + (menue_options * 30) + 60, menue_Xoffset + 300, 30 * 3 + (menue_options * 30) + 85);    //Bright. overwrite
+        
+        //if error appears suddenly
+        if ((err = dht22.read2 (&temperature, &humidity, NULL)) != SimpleDHTErrSuccess) 
+        {
+            show_string("err", menue_Xoffset + 197, 30 * 1 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);
+            delay(2000);
+        }                               
+        
+        //write Float into string 
+        //dtostrf(float, minWidth, afterDec, buf)
+        dtostrf(humidity, 3, 1, hum);
+        strcat(hum," %");
+        dtostrf(temperature, 3, 1, temp);
+        strcat(temp," C");
+        
+        Serial.print(temp);
+        Serial.print(hum);
+        show_string(temp, menue_Xoffset + 197, 30 * 1 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);              //Temp write
+        show_string(hum, menue_Xoffset + 197, 30 * 2 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);               //hum write
+
+        //brightness Sensor 
+        brightness = digitalRead(pinBrightness);
+        if (brightness == 0)
+        {
+            show_string("Tag", menue_Xoffset + 197, 30 * 3 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);         //Day write
+        }
+        else
+        {
+            show_string("Nacht", menue_Xoffset + 197, 30 * 3 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);       //Night write
+        }
+
+
+        time1 = millis();
     }
     
 

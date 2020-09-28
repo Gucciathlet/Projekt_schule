@@ -5,7 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/../**",
                 "/usr/share/arduino/hardware/arduino/cores/arduino/**",
-                "/usr/share/arduino/hardware/tools/avr/lib/avr/include/avr/**"
+                "/usr/share/arduino/hardware/tools/avr/lib/avr/include/avr/**",
+                "C:/Users/Jonas/Documents/Arduino/libraries/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
@@ -16,7 +17,8 @@
                 "path": [
                     "/home/jonas/arduinoide",
                     "/usr/share/arduino/hardware/arduino/cores/arduino",
-                    "/usr/share/arduino/hardware/tools/avr/lib/avr/include/avr"
+                    "/usr/share/arduino/hardware/tools/avr/lib/avr/include/avr",
+                    "C:/Users/Jonas/Documents/Arduino/libraries/**"
                 ]
             }
         }
