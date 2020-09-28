@@ -1,10 +1,10 @@
 //Projekt der Schule für Lüftungs Modell
 
-#include "TouchScreen.h"  //touch library
-#include "LCDWIKI_GUI.h" //Core graphics library
-#include "LCDWIKI_KBV.h" //Hardware-specific library
-#include "switch_font.c"
-LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);
+#include "TouchScreen.h"                                //touch library
+#include "LCDWIKI_GUI.h"                                //Core graphics library
+#include "LCDWIKI_KBV.h"                                //Hardware-specific library
+#include "switch_font.c"                                //Writing font and imported Pictures
+LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);             // Length and width for Display
 
 //Defines the diffrent colours
 #define BLACK   0x0000
@@ -23,10 +23,10 @@ LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);
 #define MINPRESSURE 10
 #define MAXPRESSURE 1000
 
-#define YP A3  // must be an analog pin, use "An" notation!
-#define XM A2  // must be an analog pin, use "An" notation!
-#define YM 9   //9 can be a digital pin
-#define XP 8   //8 can be a digital pin
+#define YP A3                                           // must be an analog pin, use "An" notation!
+#define XM A2                                           // must be an analog pin, use "An" notation!
+#define YM 9                                            //9 can be a digital pin
+#define XP 8                                            //8 can be a digital pin
 
 #define TS_MINX 906
 #define TS_MAXX 116
@@ -44,11 +44,11 @@ LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);
 #define pwmPin3 46
 
 //Menue shit 
-#define menue_options 7
-#define info_menue_options 3
-#define menue_Xoffset 15
-bool switch_flag1 = false;
-int menue_toggle[menue_options];
+#define menue_options 7                                 //Ammount of Options for first Menue
+#define info_menue_options 3                            //Ammount of Options for Info Menue (Temp,light, etc.)
+#define menue_Xoffset 15                                //Offset for Menue to the right 
+bool switch_flag1 = false;              
+bool menue_toggle[menue_options];                       //Array, if menue option is toggled 
 
 //system time 
 unsigned long time;
@@ -114,6 +114,7 @@ void setup(void)
             "Helligkeit:  "
         };
 
+
     //Show title
     show_string("Steuerung", 40, 5, 4, BLACK, BLACK, true);
 
@@ -125,8 +126,8 @@ void setup(void)
         my_lcd.Draw_Fast_HLine( 0, 30 * (a + 1) + 65, my_lcd.Get_Display_Width());
         show_picture(switch_off_2, sizeof(switch_off_2)/2, menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 269, 30 * (a + 1) + 64);
 
-        //Filling array with 0 (offline) for diffrent functions
-        menue_toggle[a] = 0;
+        //Filling array with false (offline) for diffrent functions
+        menue_toggle[a] = false;
     }
 
     //Draw Info-Menue (temp, feuchtigkeit, helligkeit)
@@ -147,9 +148,15 @@ void loop(void)
     pinMode(XM, OUTPUT);
     pinMode(YP, OUTPUT);
 
+    //First function 
+    if (menue_toggle[1] == true)
+    {
 
-    //if you pressed with the correct pressure
+    }
+    
 
+
+    //Checks for system time and if pressed with the right pressure 
     if (time + break_time <= millis() && p.z > MINPRESSURE && p.z < MAXPRESSURE)
     {
         p.x = map(p.x, TS_MINX, TS_MAXX, my_lcd.Get_Display_Width(),0);
