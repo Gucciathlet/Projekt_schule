@@ -171,9 +171,6 @@ void loop(void)
     
 
     //Temp, Humidity Sensor
-    // read without samples.
-    // @remark We use read2 to get a float data, such as 10.1*C
-    //    if user doesn't care about the accurate data, use read to get a byte data, such as 10*C.
     float temperature = 0;
     float humidity = 0;
     int brightness = 0;
@@ -182,12 +179,12 @@ void loop(void)
     if (time1 + 2500 <= millis())
     {
         //draw over old input a rectangle
-        my_lcd.Set_Draw_color(RED);
+        my_lcd.Set_Draw_color(BACKGROUND);
         my_lcd.Fill_Rectangle(menue_Xoffset + 197, 30 * 1 + (menue_options * 30) + 60, menue_Xoffset + 300, 30 * 1 + (menue_options * 30) + 85);    //Temp overwrite
         my_lcd.Fill_Rectangle(menue_Xoffset + 197, 30 * 2 + (menue_options * 30) + 60, menue_Xoffset + 300, 30 * 2 + (menue_options * 30) + 85);    //Hum overwrite
         my_lcd.Fill_Rectangle(menue_Xoffset + 197, 30 * 3 + (menue_options * 30) + 60, menue_Xoffset + 300, 30 * 3 + (menue_options * 30) + 85);    //Bright. overwrite
         
-        //if error appears suddenly
+        //if error appears suddenly 
         if ((err = dht22.read2 (&temperature, &humidity, NULL)) != SimpleDHTErrSuccess) 
         {
             show_string("err", menue_Xoffset + 197, 30 * 1 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);
@@ -201,8 +198,8 @@ void loop(void)
         dtostrf(temperature, 3, 1, temp);
         strcat(temp," C");
         
-        Serial.print(temp);
-        Serial.print(hum);
+        Serial.print(temp);                                                                                             // Console output temp
+        Serial.print(hum);                                                                                              // Console output humidity
         show_string(temp, menue_Xoffset + 197, 30 * 1 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);              //Temp write
         show_string(hum, menue_Xoffset + 197, 30 * 2 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);               //hum write
 
@@ -216,8 +213,6 @@ void loop(void)
         {
             show_string("Nacht", menue_Xoffset + 197, 30 * 3 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);       //Night write
         }
-
-
         time1 = millis();
     }
     
