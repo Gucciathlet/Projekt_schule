@@ -40,15 +40,27 @@ LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);             // Length and width for 
 #define STATUS_Y 65
 
 //PWM Motor pins
-#define pwmPin1 44
-#define pwmPin2 45
+#define pwmPin1 44                                      //Motor Pin 1
+#define pwmPin2 45                                      //Motor Pin 2
+#define pwmPin3 46                                      //Motor Pin 3
+
+//Digital pins
+#define pinDigital1 22                                     //Lüfter Pin 1
+#define pinDigital2 23                                     //Lüfter Pin 2
+#define pinDigital3 24                                     //Lüfter Pin 3
+#define pinDigital4 25                                     //Lüfter Pin 4
+#define pinDigital5 26                                     //Lüfter Pin 5
+#define pinDigital6 27                                     //Lüfter Pin 6
+#define pinDigital7 28                                     //Lüfter Pin 7
+#define pinDigital8 29                                     //Lüfter Pin 8
+#define pinDigital9 30                                     //Lüfter Pin 9
 
 
 //Menue shit 
-#define menue_options 7                                 //Ammount of Options for first Menue
+#define menue_options 6                                 //Ammount of Options for first Menue
 #define info_menue_options 3                            //Ammount of Options for Info Menue (Temp,light, etc.)
 #define menue_Xoffset 15                                //Offset for Menue to the right 
-bool switch_flag1 = false;              
+
 bool menue_toggle[menue_options];                       //Array, if menue option is toggled 
 
 //Temp, humidity Sensor
@@ -59,9 +71,11 @@ char temp[10];                                          //string for Temp output
 char hum[10];                                           //string for humidity output
 
 //system time 
-unsigned long time;                                     //Time for On/off buttons
-unsigned long time1;                                    //Time for Temp, Humidity Sensor
-#define break_time 350
+unsigned long time  = 0;                                //Time for On/off buttons
+unsigned long time1 = 0;                                //Time for Temp, Humidity Sensor
+#define break_time 350                                  //Break time between each input
+
+bool old_flag[menue_options];                           // to only send change when actually pressed the button
 
 
 TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
@@ -97,29 +111,26 @@ void setup(void)
 {    
     //Initialize Screen
     Serial.begin(9600);                                     //Communication Refresh rate
-    my_lcd.Init_LCD();                                          
-    Serial.println(my_lcd.Read_ID(), HEX);                  //LCD display
+    my_lcd.Init_LCD();                                      //Initialize LCD Display
+    Serial.println(my_lcd.Read_ID(), HEX);                  //Write LCD display ID
 
-    //set Input / output pin
-    pinMode(pinBrightness, INPUT);                          //For brightness
+    //Pin modes
+    pinMode(pinDigital1, OUTPUT);                           //Output for Vent
+    pinMode(pinBrightness, INPUT);                          //Input for Brightness
 
     //Colour of the Background 
     my_lcd.Fill_Screen(BACKGROUND); 
 
-    //Declarations
-    time = 0;                                               //time for on/off buttons
-    time1 = 0;                                              //time for Temp, Humidity Sensor
 
 
     char* menue_names [menue_options]=
         {
-            "Setting 1", 
-            "Setting 2", 
+            "Ventilator", 
+            "Motor", 
             "Setting 3", 
             "Setting 4", 
             "Setting 5",
-            "Setting 6",
-            "Setting 7"
+            "Setting 6"
         };
     
     char* info_menue[info_menue_options]=
@@ -143,33 +154,19 @@ void setup(void)
 
         //Filling array with false (offline) for diffrent functions
         menue_toggle[a] = false;
+        old_flag[a] = false;
     }
 
-    //Draw Info-Menue (temp, feuchtigkeit, helligkeit)
+    //Draw Info-Menue (temp, humidity, brightness)
     for (int a = 0; a < info_menue_options; a++)
     {
         show_string(info_menue[a], menue_Xoffset, 30 * (a + 1) + (menue_options * 30) + 60, 3, BLACK, BLACK, true);
     }
 
 }
-
-
-void loop(void)
+//read and write temp / hum and light 
+void temp_hum()
 {
-    digitalWrite(13, HIGH);
-    TSPoint p = ts.getPoint();
-    digitalWrite(13, LOW);
-
-    pinMode(XM, OUTPUT);
-    pinMode(YP, OUTPUT);
-
-    //First function 
-    if (menue_toggle[1] == true)
-    {
-
-    }
-    
-
     //Temp, Humidity Sensor
     float temperature = 0;
     float humidity = 0;
@@ -198,10 +195,10 @@ void loop(void)
         dtostrf(temperature, 3, 1, temp);
         strcat(temp," C");
         
-        Serial.print(temp);                                                                                             // Console output temp
-        Serial.print(hum);                                                                                              // Console output humidity
+        //Serial.print(temp);                                                                                             // Console output temp
+        //Serial.print(hum);                                                                                              // Console output humidity
         show_string(temp, menue_Xoffset + 197, 30 * 1 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);              //Temp write
-        show_string(hum, menue_Xoffset + 197, 30 * 2 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);               //hum write
+        show_string(hum,  menue_Xoffset + 197, 30 * 2 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);               //hum write
 
         //brightness Sensor 
         brightness = digitalRead(pinBrightness);
@@ -215,7 +212,54 @@ void loop(void)
         }
         time1 = millis();
     }
+}
+
+void loop(void)
+{
+    digitalWrite(13, HIGH);
+    TSPoint p = ts.getPoint();
+    digitalWrite(13, LOW);
+
+
+    pinMode(XM, OUTPUT);
+    pinMode(YP, OUTPUT);
     
+    temp_hum();                                 //Read and Write Temp, hum and light
+    
+    //////////////////////////////////////////////////
+    // first option
+    if (menue_toggle[0] != old_flag[0])
+    {
+        if (menue_toggle[0])
+        {   
+            digitalWrite(pinDigital1, HIGH);
+            Serial.print("Digital Pin1 HIGH\n");
+            old_flag[0] = menue_toggle[0];
+        }
+        else
+        {
+            digitalWrite(pinDigital1, LOW);
+            Serial.print("Digital Pin1 LOW\n");
+            old_flag[0] = menue_toggle[0];
+        }
+    }
+
+    // second option
+    if (menue_toggle[1] != old_flag[1])
+    {
+        if (menue_toggle[1])
+        {   
+            analogWrite(pwmPin2, 50);
+            Serial.print("pwm Pin2 50\n");
+            old_flag[1] = menue_toggle[1];
+        }
+        else
+        {
+            analogWrite(pwmPin2, 250);
+            Serial.print("pwm Pin2 50\n");
+            old_flag[1] = menue_toggle[1];
+        }
+    }
 
 
     //Checks for system time and if pressed with the right pressure 
@@ -230,17 +274,19 @@ void loop(void)
             if(is_pressed(menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 269, 30 * (a + 1) + 64, p.x,p.y))
             {
                 
-                if(switch_flag1)
+                if(menue_toggle[a])
                     {   
                         show_picture(switch_off_2, sizeof(switch_off_2)/2, menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 269, 30 * (a + 1) + 64);
-                        switch_flag1 = false;
+    
+                        menue_toggle[a] = false;
                     }
                     else
                     {  
                         show_picture(switch_on_2, sizeof(switch_on_2)/2, menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 269, 30 * (a + 1) + 64);
-                        switch_flag1 = true;
                         
+                        menue_toggle[a] = true;
                     }
+
                 // get system time 
                 time = millis();
             }
