@@ -57,8 +57,35 @@ LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);             // Length and width for 
 
 
 //Menue shit 
-#define menue_options 6                                 //Ammount of Options for first Menue
+#define menue_options 5                                 //Ammount of Options for first Menue
 #define info_menue_options 3                            //Ammount of Options for Info Menue (Temp,light, etc.)
+#define mode_menue_options 5
+
+    char* menue_names [menue_options]=
+        {
+            "Ventilator", 
+            "Dach", 
+            "Licht", 
+            "Wasser", 
+            "Automatik"
+        };
+    
+    char* info_menue[info_menue_options]=
+        {
+            "Temperatur:",
+            "Feuchte   :",
+            "Modus     :"
+        };
+
+    char* mode_menue[mode_menue_options] =
+        {
+            "Tomate",
+            "Zuchini",
+            "Ananas",
+            "Gras",
+            "Baum"
+        };
+
 #define menue_Xoffset 15                                //Offset for Menue to the right 
 
 bool menue_toggle[menue_options];                       //Array, if menue option is toggled 
@@ -73,9 +100,11 @@ char hum[10];                                           //string for humidity ou
 //system time 
 unsigned long time  = 0;                                //Time for On/off buttons
 unsigned long time1 = 0;                                //Time for Temp, Humidity Sensor
+unsigned long time2 = 0;                                //Time for Mode menue
 #define break_time 350                                  //Break time between each input
 
 bool old_flag[menue_options];                           // to only send change when actually pressed the button
+bool mode_menue_flag = false;                           //check if mode menue is active
 
 
 TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
@@ -107,6 +136,7 @@ bool is_pressed(int16_t x1,int16_t y1,int16_t x2,int16_t y2,int16_t px,int16_t p
     }
 }
 
+
 void setup(void) 
 {    
     //Initialize Screen
@@ -122,29 +152,12 @@ void setup(void)
     my_lcd.Fill_Screen(BACKGROUND); 
 
 
-
-    char* menue_names [menue_options]=
-        {
-            "Ventilator", 
-            "Motor", 
-            "Setting 3", 
-            "Setting 4", 
-            "Setting 5",
-            "Setting 6"
-        };
-    
-    char* info_menue[info_menue_options]=
-        {
-            "Temperatur:",
-            "Feuchte   :",
-            "Modus     :"
-        };
-
-
     //Show title
-    show_string("Steuerung", 40, 5, 4, BLACK, BLACK, true);
+    show_string("Modus:", menue_Xoffset, 5, 4, BLACK, BLACK, true);
+
 
     //Draw Settings-Menue with lines inbetween
+
     for (int a = 0; a < menue_options; a++)
     {
         show_string(menue_names[a], menue_Xoffset, 30 * (a + 1) + 40, 3, BLACK, BLACK, true);
@@ -188,6 +201,7 @@ void temp_hum()
             delay(2000);
         }                               
         
+
         //write Float into string 
         //dtostrf(float, minWidth, afterDec, buf)
         dtostrf(humidity, 3, 1, hum);
@@ -224,9 +238,9 @@ void loop(void)
     pinMode(XM, OUTPUT);
     pinMode(YP, OUTPUT);
     
-    temp_hum();                                 //Read and Write Temp, hum and light
+    //temp_hum();                                 //Read and Write Temp, hum and light
     
-    //////////////////////////////////////////////////
+
     // first option
     if (menue_toggle[0] != old_flag[0])
     {
@@ -262,33 +276,78 @@ void loop(void)
     }
 
 
+
+
+
+
     //Checks for system time and if pressed with the right pressure 
     if (time + break_time <= millis() && p.z > MINPRESSURE && p.z < MAXPRESSURE)
     {
         p.x = map(p.x, TS_MINX, TS_MAXX, my_lcd.Get_Display_Width(),0);
         p.y = map(p.y, TS_MINY, TS_MAXY, my_lcd.Get_Display_Height(),0);
 
-        //Area where to press
-        for (int a = 0; a < menue_options; a++)
+        //draw diffrent modes menue
+        if (is_pressed(menue_Xoffset, 5, 270, 30, p.x, p.y))
         {
-            if(is_pressed(menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 269, 30 * (a + 1) + 64, p.x,p.y))
+            for (int a = 0; a < mode_menue_options; a++)
             {
-                
-                if(menue_toggle[a])
-                    {   
-                        show_picture(switch_off_2, sizeof(switch_off_2)/2, menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 269, 30 * (a + 1) + 64);
-    
-                        menue_toggle[a] = false;
-                    }
-                    else
-                    {  
-                        show_picture(switch_on_2, sizeof(switch_on_2)/2, menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 269, 30 * (a + 1) + 64);
-                        
-                        menue_toggle[a] = true;
-                    }
+                my_lcd.Set_Draw_color(GREEN);                                                                                   //Draw colour GREEN
+                my_lcd.Fill_Rectangle(5, 20 * (a + 1) + 15, menue_Xoffset + 110, 20 * (a + 1) + 35);                            //Fills Menue Background GREEN
+                show_string(mode_menue[a], menue_Xoffset, 20 * (a + 1) + 20, 2, BLACK, BLACK, true);                            //Writes mode menue options
+            }
+            mode_menue_flag = true;
+            time = millis();
+        }
 
-                // get system time 
-                time = millis();
+        if(mode_menue_flag)
+        {
+            for (int a = 0; a < mode_menue_options; a++)
+            {
+                if(is_pressed(5, 20 * (a + 1) + 15, menue_Xoffset + 110, 20 * (a + 1) + 35, p.x, p.y))
+                {
+                    my_lcd.Set_Draw_color(BACKGROUND);  
+
+                    my_lcd.Fill_Rectangle(150, 5, 350, 40);  //Fills Background again
+                    show_string(mode_menue[a], 150, 5, 4, GREEN, GREEN, true);
+
+                    
+                    my_lcd.Set_Draw_color(BACKGROUND);  
+                    my_lcd.Fill_Rectangle(5, 35, menue_Xoffset + 110, 20 * mode_menue_options + 35);  //Fills Background again
+
+                    //draw normal menue again
+                        for (int b = 0; b < menue_options; b++)
+                        {
+                            show_string(menue_names[b], menue_Xoffset, 30 * (b + 1) + 40, 3, BLACK, BLACK, true);
+                            my_lcd.Set_Draw_color(BLACK);
+                            my_lcd.Draw_Fast_HLine( 0, 30 * (b + 1) + 65, my_lcd.Get_Display_Width());
+                        }
+                    mode_menue_flag = false;
+                }
+            }
+            time = millis();
+        }
+
+        //Normal options Menue
+        if (mode_menue_flag == false)
+        {
+            for (int a = 0; a < menue_options; a++)
+            {
+                if(is_pressed(menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 269, 30 * (a + 1) + 64, p.x,p.y))
+                {
+                    if(menue_toggle[a])
+                        {   
+                            show_picture(switch_off_2, sizeof(switch_off_2)/2, menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 269, 30 * (a + 1) + 64);
+        
+                            menue_toggle[a] = false;
+                        }
+                        else
+                        {  
+                            show_picture(switch_on_2, sizeof(switch_on_2)/2, menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 269, 30 * (a + 1) + 64);
+                            
+                            menue_toggle[a] = true;
+                        }
+                    time = millis();
+                }
             }
         }
     }
