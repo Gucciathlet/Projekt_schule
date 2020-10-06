@@ -45,21 +45,22 @@ LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);             // Length and width for 
 #define pwmPin3 46                                      //Motor Pin 3
 
 //Digital pins
-#define pinDigital1 22                                     //Lüfter Pin 1
-#define pinDigital2 23                                     //Lüfter Pin 2
-#define pinDigital3 24                                     //Lüfter Pin 3
-#define pinDigital4 25                                     //Lüfter Pin 4
-#define pinDigital5 26                                     //Lüfter Pin 5
-#define pinDigital6 27                                     //Lüfter Pin 6
-#define pinDigital7 28                                     //Lüfter Pin 7
-#define pinDigital8 29                                     //Lüfter Pin 8
-#define pinDigital9 30                                     //Lüfter Pin 9
+#define pinDigital1 22                                     //Pin 1
+#define pinDigital2 23                                     //Pin 2
+#define pinDigital3 24                                     //Pin 3
+#define pinDigital4 25                                     //Pin 4
+#define pinDigital5 26                                     //Pin 5
+#define pinDigital6 27                                     //Pin 6
+#define pinDigital7 28                                     //Pin 7
+#define pinDigital8 29                                     //Pin 8
+#define pinDigital9 30                                     //Pin 9
 
 
 //Menue shit 
 #define menue_options 5                                 //Ammount of Options for first Menue
 #define info_menue_options 3                            //Ammount of Options for Info Menue (Temp,light, etc.)
-#define mode_menue_options 5
+#define mode_menue_options 5                            //Ammount of Options for Mode Menue (Plant type)
+
 
     char* menue_names [menue_options]=
         {
@@ -88,7 +89,11 @@ LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);             // Length and width for 
 
 #define menue_Xoffset 15                                //Offset for Menue to the right 
 
-bool menue_toggle[menue_options];                       //Array, if menue option is toggled 
+//Toggle 
+bool menue_toggle[menue_options];                       //Array, what Menue is toggled
+bool mode_menue_toggle[mode_menue_options];             //Array, what mode is selected
+bool old_flag[menue_options];                           // to only send change when actually pressed the button
+bool mode_menue_flag = false;                           //check if mode menue is active
 
 //Temp, humidity Sensor
 #define pinBrightness 49                                //Input Pin for Brightness 
@@ -103,8 +108,15 @@ unsigned long time1 = 0;                                //Time for Temp, Humidit
 unsigned long time2 = 0;                                //Time for Mode menue
 #define break_time 350                                  //Break time between each input
 
-bool old_flag[menue_options];                           // to only send change when actually pressed the button
-bool mode_menue_flag = false;                           //check if mode menue is active
+struct plant_modes
+{
+    float temperature;
+    float humidity;
+    bool  day_night;
+};
+
+plant_modes* automatic = (plant_modes*) malloc (sizeof(plant_modes) * mode_menue_options); 
+
 
 
 TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
@@ -151,7 +163,6 @@ void setup(void)
     //Colour of the Background 
     my_lcd.Fill_Screen(BACKGROUND); 
 
-
     //Show title
     show_string("Modus:", menue_Xoffset, 5, 4, BLACK, BLACK, true);
 
@@ -174,6 +185,12 @@ void setup(void)
     for (int a = 0; a < info_menue_options; a++)
     {
         show_string(info_menue[a], menue_Xoffset, 30 * (a + 1) + (menue_options * 30) + 60, 3, BLACK, BLACK, true);
+    }
+
+    //set mode menue to false (offline)
+    for (int a = 0; a < mode_menue_options; a++)
+    {
+        mode_menue_toggle[a] = false;
     }
 
 }
@@ -228,6 +245,8 @@ void temp_hum()
     }
 }
 
+
+
 void loop(void)
 {
     digitalWrite(13, HIGH);
@@ -241,7 +260,7 @@ void loop(void)
     //temp_hum();                                 //Read and Write Temp, hum and light
     
 
-    // first option
+    // first option manual mode
     if (menue_toggle[0] != old_flag[0])
     {
         if (menue_toggle[0])
@@ -258,7 +277,7 @@ void loop(void)
         }
     }
 
-    // second option
+    // second option manual mode
     if (menue_toggle[1] != old_flag[1])
     {
         if (menue_toggle[1])
@@ -275,7 +294,19 @@ void loop(void)
         }
     }
 
+    //5th option toggle, Activates the automatic mode 
+    if(menue_toggle[4])
+    {
+        for()
 
+        old_flag[4] = menue_toggle[4];
+    }
+    else
+    {
+           
+
+        old_flag[4] = menue_toggle[4];
+    }
 
 
 
@@ -305,14 +336,17 @@ void loop(void)
             {
                 if(is_pressed(5, 20 * (a + 1) + 15, menue_Xoffset + 110, 20 * (a + 1) + 35, p.x, p.y))
                 {
-                    my_lcd.Set_Draw_color(BACKGROUND);  
+                    //activates the selected automatic mode 
+                    mode_menue_toggle[a] = true;
 
-                    my_lcd.Fill_Rectangle(150, 5, 350, 40);  //Fills Background again
+                    //draw over old Option & writes new mode on TOP
+                    my_lcd.Set_Draw_color(BACKGROUND);  
+                    my_lcd.Fill_Rectangle(150, 5, 350, 40); 
                     show_string(mode_menue[a], 150, 5, 4, GREEN, GREEN, true);
 
-                    
+                    //draw over old menue options
                     my_lcd.Set_Draw_color(BACKGROUND);  
-                    my_lcd.Fill_Rectangle(5, 35, menue_Xoffset + 110, 20 * mode_menue_options + 35);  //Fills Background again
+                    my_lcd.Fill_Rectangle(5, 35, menue_Xoffset + 110, 20 * mode_menue_options + 35);
 
                     //draw normal menue again
                         for (int b = 0; b < menue_options; b++)
