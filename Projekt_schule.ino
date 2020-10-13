@@ -45,10 +45,10 @@ LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);             // Length and width for 
 #define pwmPin3 46                                      //Motor Pin 3
 
 //Digital pins
-#define pinDigital1 22                                     //Pin 1
-#define pinDigital2 23                                     //Pin 2
-#define pinDigital3 24                                     //Pin 3
-#define pinDigital4 25                                     //Pin 4
+#define pinDigital1 22                                     //Pin 1  Ventilator
+#define pinDigital2 23                                     //Pin 2  Motor
+#define pinDigital3 24                                     //Pin 3  light
+#define pinDigital4 25                                     //Pin 4  Watering
 #define pinDigital5 26                                     //Pin 5
 #define pinDigital6 27                                     //Pin 6
 #define pinDigital7 28                                     //Pin 7
@@ -58,7 +58,7 @@ LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);             // Length and width for 
 
 //Menue shit 
 #define menue_options 5                                 //Ammount of Options for first Menue
-#define info_menue_options 3                            //Ammount of Options for Info Menue (Temp,light, etc.)
+#define info_menue_options 4                            //Ammount of Options for Info Menue (Temp,light, etc.)
 #define mode_menue_options 5                            //Ammount of Options for Mode Menue (Plant type)
 
 
@@ -75,7 +75,8 @@ LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);             // Length and width for 
         {
             "Temperatur:",
             "Feuchte   :",
-            "Modus     :"
+            "Modus     :",
+            "Laufzeit  :"
         };
 
     char* mode_menue[mode_menue_options] =
@@ -94,6 +95,7 @@ bool menue_toggle[menue_options];                       //Array, what Menue is t
 bool mode_menue_toggle[mode_menue_options];             //Array, what mode is selected
 bool old_flag[menue_options];                           // to only send change when actually pressed the button
 bool mode_menue_flag = false;                           //check if mode menue is active
+int mode_menue_select = 0;                              //saves the chosen menue for the automatic Mode
 
 //Temp, humidity Sensor
 #define pinBrightness 49                                //Input Pin for Brightness 
@@ -101,22 +103,34 @@ bool mode_menue_flag = false;                           //check if mode menue is
 SimpleDHT22 dht22(pinDHT22);  
 char temp[10];                                          //string for Temp output 
 char hum[10];                                           //string for humidity output
+char runt[10];                                          //string for runtime ouput 
 
 //system time 
 unsigned long time  = 0;                                //Time for On/off buttons
 unsigned long time1 = 0;                                //Time for Temp, Humidity Sensor
 unsigned long time2 = 0;                                //Time for Mode menue
+unsigned long time3 = 0;                                //Time for Active Automatic Menue
+unsigned long time4 = 0;                                //Time for Watering 
 #define break_time 350                                  //Break time between each input
 
 struct plant_modes
 {
     float temperature;
     float humidity;
-    bool  day_night;
+    int light_time;
+    int watering_time;
+    int watering_break;
 };
 
-plant_modes* automatic = (plant_modes*) malloc (sizeof(plant_modes) * mode_menue_options); 
+plant_modes automatic = (plant_modes*) malloc (sizeof(plant_modes) * mode_menue_options); 
 
+                ///pre configured modes
+//First mode
+automatic[0].temperature     = 23.0;
+automatic[0].humidity        = 80.0;
+automatic[0].light_time      = 30000;
+automatic[0].watering_time   = 5000;
+automatic[0].watering_break  = 30000;
 
 
 TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
@@ -164,7 +178,7 @@ void setup(void)
     my_lcd.Fill_Screen(BACKGROUND); 
 
     //Show title
-    show_string("Modus:", menue_Xoffset, 5, 4, BLACK, BLACK, true);
+    show_string("Modus", menue_Xoffset, 5, 4, BLACK, BLACK, true);
 
 
     //Draw Settings-Menue with lines inbetween
@@ -202,6 +216,7 @@ void temp_hum()
     float humidity = 0;
     int brightness = 0;
     int err = SimpleDHTErrSuccess;
+    float runtime = 0;
 
     if (time1 + 2500 <= millis())
     {
@@ -210,7 +225,8 @@ void temp_hum()
         my_lcd.Fill_Rectangle(menue_Xoffset + 197, 30 * 1 + (menue_options * 30) + 60, menue_Xoffset + 300, 30 * 1 + (menue_options * 30) + 85);    //Temp overwrite
         my_lcd.Fill_Rectangle(menue_Xoffset + 197, 30 * 2 + (menue_options * 30) + 60, menue_Xoffset + 300, 30 * 2 + (menue_options * 30) + 85);    //Hum overwrite
         my_lcd.Fill_Rectangle(menue_Xoffset + 197, 30 * 3 + (menue_options * 30) + 60, menue_Xoffset + 300, 30 * 3 + (menue_options * 30) + 85);    //Bright. overwrite
-        
+        my_lcd.Fill_Rectangle(menue_Xoffset + 197, 30 * 4 + (menue_options * 30) + 60, menue_Xoffset + 300, 30 * 4 + (menue_options * 30) + 85);    //Runtime overwrite
+
         //if error appears suddenly 
         if ((err = dht22.read2 (&temperature, &humidity, NULL)) != SimpleDHTErrSuccess) 
         {
@@ -241,6 +257,12 @@ void temp_hum()
         {
             show_string("Nacht", menue_Xoffset + 197, 30 * 3 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);       //Night write
         }
+
+        runtime = ((millis() / 1000) / 60);
+        dtostrf(runtime, 3, 1, runt);
+        strcat(runt, " min");
+
+        show_string(runt, menue_Xoffset + 197, 30 * 4 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);              //write Runtime 
         time1 = millis();
     }
 }
@@ -257,7 +279,7 @@ void loop(void)
     pinMode(XM, OUTPUT);
     pinMode(YP, OUTPUT);
     
-    //temp_hum();                                 //Read and Write Temp, hum and light
+    temp_hum();                                 //Read and Write Temp, hum and light
     
 
     // first option manual mode
@@ -297,15 +319,46 @@ void loop(void)
     //5th option toggle, Activates the automatic mode 
     if(menue_toggle[4])
     {
-        for()
+        //check if temp or hum is too high
+        if ((temperature >= automatic[mode_menue_select].temperature || humidity >= automatic[mode_menue_select].humidity) && time3 + 2000 <= millis())
+        {
+            //activate vent
+            digitalWrite(pinDigital1, HIGH);
+            //activate motor for Window opener
+            analogWrite(pwmPin2, 50);
+        }
+        //if Temp and hum is in normal state then vent off and motor back to close position
+        else if ((temperature <= automatic[mode_menue_select].temperature && humidity <= automatic[mode_menue_select].humidity) && time3 + 2000 <= millis())
+        {
+            digitalWrite(pinDigital1, LOW);
+            analogWrite(pwmPin2, 250);
+        }
+        
+        //lööömpp time 
 
-        old_flag[4] = menue_toggle[4];
+
+        //water pump on for specific time and off after configured time 
+        //Full speed version (for Slower versions add Resistors and same if dependency just other pin)
+        if (time3 + automatic[mode_menue_select].watering_break <= millis())
+        {
+            digitalWrite(pinDigital4, HIGH);
+            time4 = millis() + automatic[0].watering_break;
+        }
+        else if (time4 <= millis() && time3 + 2000 <= millis())
+        {
+            digitalWrite(pinDigital4, LOW);
+        }
+
+
+        time3 = millis();
     }
     else
     {
-           
+        if (menue_toggle[4] != old_flag[4])
+        {
 
-        old_flag[4] = menue_toggle[4];
+            old_flag[4] = menue_toggle[4];
+        }   
     }
 
 
@@ -343,6 +396,8 @@ void loop(void)
                     my_lcd.Set_Draw_color(BACKGROUND);  
                     my_lcd.Fill_Rectangle(150, 5, 350, 40); 
                     show_string(mode_menue[a], 150, 5, 4, GREEN, GREEN, true);
+                    //Saves the selected Menue for automatic Mode
+                    mode_menue_select = a;          
 
                     //draw over old menue options
                     my_lcd.Set_Draw_color(BACKGROUND);  
