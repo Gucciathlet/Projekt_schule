@@ -62,31 +62,31 @@ LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);             // Length and width for 
 #define mode_menue_options 5                            //Ammount of Options for Mode Menue (Plant type)
 
 
-    char* menue_names [menue_options]=
-        {
-            "Ventilator", 
-            "Dach", 
-            "Licht", 
-            "Wasser", 
-            "Automatik"
-        };
+const char* menue_names [menue_options]=
+{
+    "Ventilator", 
+    "Dach", 
+    "Licht", 
+    "Wasser", 
+    "Automatik"
+};
     
-    char* info_menue[info_menue_options]=
-        {
-            "Temperatur:",
-            "Feuchte   :",
-            "Modus     :",
-            "Laufzeit  :"
-        };
+const char* info_menue[info_menue_options]=
+{
+    "Temperatur:",
+    "Feuchte   :",
+    "Modus     :",
+    "Laufzeit  :"
+};
 
-    char* mode_menue[mode_menue_options] =
-        {
-            "Tomate",
-            "Zuchini",
-            "Ananas",
-            "Gras",
-            "Baum"
-        };
+const char* mode_menue[mode_menue_options] =
+{
+    "Tomate",
+    "Zuchini",
+    "Ananas",
+    "Gras",
+    "Baum"
+};
 
 #define menue_Xoffset 15                                //Offset for Menue to the right 
 
@@ -113,30 +113,22 @@ unsigned long time3 = 0;                                //Time for Active Automa
 unsigned long time4 = 0;                                //Time for Watering 
 #define break_time 350                                  //Break time between each input
 
-struct plant_modes
+typedef struct 
 {
     float temperature;
     float humidity;
     int light_time;
     int watering_time;
     int watering_break;
-};
+}plant_modes;
 
-plant_modes automatic = (plant_modes*) malloc (sizeof(plant_modes) * mode_menue_options); 
-
-                ///pre configured modes
-//First mode
-automatic[0].temperature     = 23.0;
-automatic[0].humidity        = 80.0;
-automatic[0].light_time      = 30000;
-automatic[0].watering_time   = 5000;
-automatic[0].watering_break  = 30000;
+plant_modes autonom[mode_menue_options];
 
 
 TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 
 //Displays a string
-void show_string(uint8_t *str,int16_t x,int16_t y,uint8_t csize,uint16_t fc, uint16_t bc,bool mode){
+void show_string(uint8_t* const str,int16_t x,int16_t y,uint8_t csize,uint16_t fc, uint16_t bc,bool mode){
     my_lcd.Set_Text_Mode(mode);
     my_lcd.Set_Text_Size(csize);
     my_lcd.Set_Text_colour(fc);
@@ -165,6 +157,18 @@ bool is_pressed(int16_t x1,int16_t y1,int16_t x2,int16_t y2,int16_t px,int16_t p
 
 void setup(void) 
 {    
+    //diffrent preconfigured modes
+    //First mode
+    //temp, hum, light_time, watering_time, watering_break
+    autonom[0] = {23.0, 80.0, 30000, 5000, 30000}
+    autonom[1] = {23.0, 80.0, 30000, 5000, 30000}
+    autonom[2] = {23.0, 80.0, 30000, 5000, 30000}
+    autonom[3] = {23.0, 80.0, 30000, 5000, 30000}
+    autonom[4] = {23.0, 80.0, 30000, 5000, 30000}
+    
+
+
+
     //Initialize Screen
     Serial.begin(9600);                                     //Communication Refresh rate
     my_lcd.Init_LCD();                                      //Initialize LCD Display
@@ -260,7 +264,7 @@ void temp_hum()
 
         runtime = ((millis() / 1000) / 60);
         dtostrf(runtime, 3, 1, runt);
-        strcat(runt, " min");
+        strcat(runt, " m");
 
         show_string(runt, menue_Xoffset + 197, 30 * 4 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);              //write Runtime 
         time1 = millis();
@@ -344,7 +348,7 @@ void loop(void)
         if (time3 + automatic[mode_menue_select].watering_break <= millis())
         {
             digitalWrite(pinDigital4, HIGH);
-            time4 = millis() + automatic[0].watering_break;
+            time4 = millis() + automatic[mode_menue_select].watering_break;
         }
         else if (time4 <= millis() && time3 + 2000 <= millis())
         {
