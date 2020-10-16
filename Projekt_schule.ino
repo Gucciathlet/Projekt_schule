@@ -263,13 +263,15 @@ void loop(void)
     {
         if (menue_toggle[1])
         {   
-            analogWrite(pwmPin2, 50);
+            analogWrite(pwmPin2, 50 );                   //one motor
+            analogWrite(pwmPin3, 250);                   //second one on other side
             Serial.print("pwm Pin2 50\n");
             old_flag[1] = menue_toggle[1];
         }
         else
         {
-            analogWrite(pwmPin2, 250);
+            analogWrite(pwmPin2, 250);                  //one motor
+            analogWrite(pwmPin3, 50 );                  //second one on other side
             Serial.print("pwm Pin2 50\n");
             old_flag[1] = menue_toggle[1];
         }
