@@ -46,7 +46,7 @@ LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);             // Length and width for 
 
 //Digital pins
 #define pinDigital1 22                                     //Pin 1  Ventilator
-#define pinDigital2 23                                     //Pin 2  Motor
+#define pinDigital2 23                                     //Pin 2  
 #define pinDigital3 24                                     //Pin 3  light
 #define pinDigital4 25                                     //Pin 4  Watering
 #define pinDigital5 26                                     //Pin 5
@@ -99,11 +99,19 @@ int mode_menue_select = 0;                              //saves the chosen menue
 
 //Temp, humidity Sensor
 #define pinBrightness 49                                //Input Pin for Brightness 
-#define pinDHT22 47                                     //Data Pin for Temp, Humidity Sensor                                       
+#define pinDHT22 51                                     //Data Pin for Temp, Humidity Sensor                                       
 SimpleDHT22 dht22(pinDHT22);  
 char temp[10];                                          //string for Temp output 
 char hum[10];                                           //string for humidity output
 char runt[10];                                          //string for runtime ouput 
+
+//Temp, Humidity Sensor
+float temperature = 0;
+float humidity = 0;
+int brightness = 0;
+int err = SimpleDHTErrSuccess;
+float runtime = 0;
+
 
 //system time 
 unsigned long time  = 0;                                //Time for On/off buttons
@@ -160,11 +168,11 @@ void setup(void)
     //diffrent preconfigured modes
     //First mode
     //temp, hum, light_time, watering_time, watering_break
-    autonom[0] = {23.0, 80.0, 30000, 5000, 30000}
-    autonom[1] = {23.0, 80.0, 30000, 5000, 30000}
-    autonom[2] = {23.0, 80.0, 30000, 5000, 30000}
-    autonom[3] = {23.0, 80.0, 30000, 5000, 30000}
-    autonom[4] = {23.0, 80.0, 30000, 5000, 30000}
+    autonom[0] = {23.0, 80.0, 30000, 5000, 30000};
+    autonom[1] = {23.0, 80.0, 30000, 5000, 30000};
+    autonom[2] = {23.0, 80.0, 30000, 5000, 30000};
+    autonom[3] = {23.0, 80.0, 30000, 5000, 30000};
+    autonom[4] = {23.0, 80.0, 30000, 5000, 30000};
     
 
 
@@ -182,7 +190,7 @@ void setup(void)
     my_lcd.Fill_Screen(BACKGROUND); 
 
     //Show title
-    show_string("Modus", menue_Xoffset, 5, 4, BLACK, BLACK, true);
+    show_string("Mode>", menue_Xoffset, 5, 4, BLACK, BLACK, true);
 
 
     //Draw Settings-Menue with lines inbetween
@@ -215,12 +223,6 @@ void setup(void)
 //read and write temp / hum and light 
 void temp_hum()
 {
-    //Temp, Humidity Sensor
-    float temperature = 0;
-    float humidity = 0;
-    int brightness = 0;
-    int err = SimpleDHTErrSuccess;
-    float runtime = 0;
 
     if (time1 + 2500 <= millis())
     {
@@ -275,6 +277,7 @@ void temp_hum()
 
 void loop(void)
 {
+
     digitalWrite(13, HIGH);
     TSPoint p = ts.getPoint();
     digitalWrite(13, LOW);
@@ -287,84 +290,120 @@ void loop(void)
     
 
     // first option manual mode
-    if (menue_toggle[0] != old_flag[0])
+    if (menue_toggle[0] != old_flag[0] && !menue_toggle[4])
     {
         if (menue_toggle[0])
         {   
             digitalWrite(pinDigital1, HIGH);
-            Serial.print("Digital Pin1 HIGH\n");
+            Serial.print("First Option ON\n");
             old_flag[0] = menue_toggle[0];
         }
         else
         {
             digitalWrite(pinDigital1, LOW);
-            Serial.print("Digital Pin1 LOW\n");
+            Serial.print("First Option OFF - DigitalPin1\n");
             old_flag[0] = menue_toggle[0];
         }
     }
 
     // second option manual mode
-    if (menue_toggle[1] != old_flag[1])
+    if (menue_toggle[1] != old_flag[1] && !menue_toggle[4])
     {
         if (menue_toggle[1])
         {   
             analogWrite(pwmPin2, 50 );                   //one motor
             analogWrite(pwmPin3, 250);                   //second one on other side
-            Serial.print("pwm Pin2 50\n");
+            Serial.print("Second Option ON - pwmPin2 + 3\n");
             old_flag[1] = menue_toggle[1];
         }
         else
         {
             analogWrite(pwmPin2, 250);                  //one motor
             analogWrite(pwmPin3, 50 );                  //second one on other side
-            Serial.print("pwm Pin2 50\n");
+            Serial.print("Second Option OFF - pwmPin2 + 3\n");
             old_flag[1] = menue_toggle[1];
         }
     }
 
+    // third option manual mode
+    if (menue_toggle[2] != old_flag[2] && !menue_toggle[4])
+    {
+        if (menue_toggle[2])
+        {   
+            digitalWrite(pinDigital3, HIGH);
+            Serial.print("Third Option ON - DigitalPin3\n");
+            old_flag[2] = menue_toggle[2];
+        }
+        else
+        {
+            digitalWrite(pinDigital3, LOW);
+            Serial.print("Third Option OFF - DigitalPin3\n");
+            old_flag[2] = menue_toggle[2];
+        }
+    }
+
+    // fourth option manual mode 
+    if (menue_toggle[3] != old_flag[3] && !menue_toggle[4])
+    {
+        if (menue_toggle[3])
+        {   
+            digitalWrite(pinDigital4, HIGH);
+            Serial.print("Fourth Option ON - DigitalPin4\n");
+            old_flag[3] = menue_toggle[3];
+        }
+        else
+        {
+            digitalWrite(pinDigital4, LOW);
+            Serial.print("Third Option OFF - DigitalPin4\n");
+            old_flag[3] = menue_toggle[3];
+        }
+    }
+
+    //temp, hum, light_time, watering_time, watering_break
     //5th option toggle, Activates the automatic mode 
-    if(menue_toggle[4])
+    if(menue_toggle[4] != old_flag[4])
     {
         //check if temp or hum is too high
-        if ((temperature >= automatic[mode_menue_select].temperature || humidity >= automatic[mode_menue_select].humidity) && time3 + 2000 <= millis())
+        if ((temperature > autonom[mode_menue_select].temperature || humidity > autonom[mode_menue_select].humidity) && time3 + 1000 < millis())
         {
             //activate vent
             digitalWrite(pinDigital1, HIGH);
             //activate motor for Window opener
             analogWrite(pwmPin2, 50);
+            Serial.print("TEMP/HUM zu hoch\n");
+            time3 = millis();
         }
         //if Temp and hum is in normal state then vent off and motor back to close position
-        else if ((temperature <= automatic[mode_menue_select].temperature && humidity <= automatic[mode_menue_select].humidity) && time3 + 2000 <= millis())
+        else if ((temperature < autonom[mode_menue_select].temperature && humidity < autonom[mode_menue_select].humidity) && time3 + 1000 < millis())
         {
             digitalWrite(pinDigital1, LOW);
             analogWrite(pwmPin2, 250);
+            Serial.print("TEMP/HUM zu niedrig\n");
+            time3 = millis();
         }
         
         //lööömpp time 
-
+        
 
         //water pump on for specific time and off after configured time 
         //Full speed version (for Slower versions add Resistors and same if dependency just other pin)
-        if (time3 + automatic[mode_menue_select].watering_break <= millis())
+
+        /*
+        if (time3 + autonom[mode_menue_select].watering_break <= millis())
         {
             digitalWrite(pinDigital4, HIGH);
-            time4 = millis() + automatic[mode_menue_select].watering_break;
+            time4 = millis() + autonom[mode_menue_select].watering_break;
         }
-        else if (time4 <= millis() && time3 + 2000 <= millis())
+        else if (time4 <= millis())
         {
             digitalWrite(pinDigital4, LOW);
         }
-
-
-        time3 = millis();
+        */
+        //time3 = millis();
     }
-    else
+    else if (menue_toggle[4] != old_flag[4])
     {
-        if (menue_toggle[4] != old_flag[4])
-        {
-
-            old_flag[4] = menue_toggle[4];
-        }   
+        old_flag[4] = menue_toggle[4];
     }
 
 
@@ -423,7 +462,7 @@ void loop(void)
         }
 
         //Normal options Menue
-        if (mode_menue_flag == false)
+        if (!mode_menue_flag)
         {
             for (int a = 0; a < menue_options; a++)
             {
