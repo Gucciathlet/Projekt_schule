@@ -1,4 +1,4 @@
-//Projekt der Schule für Lüftungs Modell gewächshaus
+//Projekt der Schule für Lüftungs Modell
 
 #include "TouchScreen.h"                                //touch library
 #include "LCDWIKI_GUI.h"                                //Core graphics library
@@ -49,7 +49,7 @@ LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);             // Length and width for 
 #define pinDigital2 23                                     //Pin 2  
 #define pinDigital3 24                                     //Pin 3  light
 #define pinDigital4 25                                     //Pin 4  Watering
-#define pinDigital5 26                                     //Pin 5  
+#define pinDigital5 26                                     //Pin 5
 #define pinDigital6 27                                     //Pin 6
 #define pinDigital7 28                                     //Pin 7
 #define pinDigital8 29                                     //Pin 8
@@ -98,13 +98,6 @@ bool mode_menue_flag = false;                           //check if mode menue is
 int mode_menue_select = 0;                              //saves the chosen menue for the automatic Mode
 
 //Temp, humidity Sensor
-float temperature = 0;                                  //read in temperature
-float humidity = 0;                                     //read in humidity
-bool brightness = 0;                                     //read in brightness (1/0)
-int err = SimpleDHTErrSuccess;                          //Error msg from sensor
-float runtime = 0;                                      //outputs runtime
-
-
 #define pinBrightness 49                                //Input Pin for Brightness 
 #define pinDHT22 51                                     //Data Pin for Temp, Humidity Sensor                                       
 SimpleDHT22 dht22(pinDHT22);  
@@ -126,8 +119,7 @@ unsigned long time1 = 0;                                //Time for Temp, Humidit
 unsigned long time2 = 0;                                //Time for Mode menue
 unsigned long time3 = 0;                                //Time for Active Automatic Menue
 unsigned long time4 = 0;                                //Time for Watering 
-unsigned long time5 = 0;                                //Time when Lamp got activated, for light_time
-#define break_time 350                                  //Break time between each Touch-input
+#define break_time 350                                  //Break time between each input
 
 typedef struct 
 {
@@ -136,7 +128,6 @@ typedef struct
     int light_time;
     int watering_time;
     int watering_break;
-    int time_one_day;
 }plant_modes;
 
 plant_modes autonom[mode_menue_options];
@@ -177,25 +168,11 @@ void setup(void)
     //diffrent preconfigured modes
     //First mode
     //temp, hum, light_time, watering_time, watering_break
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> fe74208d9150a88873a786554ce1279c3448b9f1
     autonom[0] = {23.0, 80.0, 30000, 5000, 30000};
     autonom[1] = {23.0, 80.0, 30000, 5000, 30000};
     autonom[2] = {23.0, 80.0, 30000, 5000, 30000};
     autonom[3] = {23.0, 80.0, 30000, 5000, 30000};
     autonom[4] = {23.0, 80.0, 30000, 5000, 30000};
-<<<<<<< HEAD
-=======
-=======
-    autonom[0] = {23.0, 80.0, 30000, 5000, 30000, 86400000}
-    autonom[1] = {23.0, 80.0, 30000, 5000, 30000, 86400000}
-    autonom[2] = {23.0, 80.0, 30000, 5000, 30000, 86400000}
-    autonom[3] = {23.0, 80.0, 30000, 5000, 30000, 86400000}
-    autonom[4] = {23.0, 80.0, 30000, 5000, 30000, 86400000}
->>>>>>> 30ae35d2d4134aead486f6f1761cf0ec978697c8
->>>>>>> fe74208d9150a88873a786554ce1279c3448b9f1
     
 
 
@@ -243,7 +220,6 @@ void setup(void)
     }
 
 }
-
 //read and write temp / hum and light 
 void temp_hum()
 {
@@ -287,7 +263,6 @@ void temp_hum()
         {
             show_string("Nacht", menue_Xoffset + 197, 30 * 3 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);       //Night write
         }
-        
 
         runtime = ((millis() / 1000) / 60);
         dtostrf(runtime, 3, 1, runt);
@@ -389,15 +364,7 @@ void loop(void)
     if(menue_toggle[4] != old_flag[4])
     {
         //check if temp or hum is too high
-<<<<<<< HEAD
         if ((temperature > autonom[mode_menue_select].temperature || humidity > autonom[mode_menue_select].humidity) && time3 + 1000 < millis())
-=======
-<<<<<<< HEAD
-        if ((temperature > autonom[mode_menue_select].temperature || humidity > autonom[mode_menue_select].humidity) && time3 + 1000 < millis())
-=======
-        if ((temperature >= autonom[mode_menue_select].temperature || humidity >= autonom[mode_menue_select].humidity) && time3 + 2000 <= millis())
->>>>>>> 30ae35d2d4134aead486f6f1761cf0ec978697c8
->>>>>>> fe74208d9150a88873a786554ce1279c3448b9f1
         {
             //activate vent
             digitalWrite(pinDigital1, HIGH);
@@ -407,15 +374,7 @@ void loop(void)
             time3 = millis();
         }
         //if Temp and hum is in normal state then vent off and motor back to close position
-<<<<<<< HEAD
         else if ((temperature < autonom[mode_menue_select].temperature && humidity < autonom[mode_menue_select].humidity) && time3 + 1000 < millis())
-=======
-<<<<<<< HEAD
-        else if ((temperature < autonom[mode_menue_select].temperature && humidity < autonom[mode_menue_select].humidity) && time3 + 1000 < millis())
-=======
-        else if ((temperature <= autonom[mode_menue_select].temperature && humidity <= autonom[mode_menue_select].humidity) && time3 + 2000 <= millis())
->>>>>>> 30ae35d2d4134aead486f6f1761cf0ec978697c8
->>>>>>> fe74208d9150a88873a786554ce1279c3448b9f1
         {
             digitalWrite(pinDigital1, LOW);
             analogWrite(pwmPin2, 250);
@@ -423,7 +382,6 @@ void loop(void)
             time3 = millis();
         }
         
-<<<<<<< HEAD
         //lööömpp time 
         
 
@@ -431,20 +389,6 @@ void loop(void)
         //Full speed version (for Slower versions add Resistors and same if dependency just other pin)
 
         /*
-<<<<<<< HEAD
-=======
-=======
-        //lööömpp time NOT FINISHED
-        if (time5 <= millis())
-        {
-            digitalWrite(pinDigital3, HIGH);
-            time5 = millis() + autonom[mode_menue_select].light_time;
-        }
-        
-
-        //water pump on for specific time and off after configured time 
->>>>>>> 30ae35d2d4134aead486f6f1761cf0ec978697c8
->>>>>>> fe74208d9150a88873a786554ce1279c3448b9f1
         if (time3 + autonom[mode_menue_select].watering_break <= millis())
         {
             digitalWrite(pinDigital4, HIGH);
@@ -454,19 +398,8 @@ void loop(void)
         {
             digitalWrite(pinDigital4, LOW);
         }
-<<<<<<< HEAD
         */
         //time3 = millis();
-=======
-<<<<<<< HEAD
-        */
-        //time3 = millis();
-=======
-
-        //Get timestamp for this function
-        time3 = millis();
->>>>>>> 30ae35d2d4134aead486f6f1761cf0ec978697c8
->>>>>>> fe74208d9150a88873a786554ce1279c3448b9f1
     }
     else if (menue_toggle[4] != old_flag[4])
     {
