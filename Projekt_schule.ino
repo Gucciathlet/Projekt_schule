@@ -17,6 +17,10 @@ LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);             // Length and width for 
 #define YELLOW  0xFFE0
 #define WHITE   0xFFFF
 
+//Voltage 
+#define REF_VOLTAGE    5.0
+#define PIN_STEPS   1023.0
+
 //Defines the Background Colours
 #define BACKGROUND RED
 #define MENUE_COLOUR BLUE
@@ -45,10 +49,10 @@ LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);             // Length and width for 
 #define pwmPin3 46                                      //Motor Pin 3
 
 //Digital pins
-#define pinDigital1 22                                     //Pin 1  Ventilator
+#define pinDigital1 22                                     //Pin 1  
 #define pinDigital2 23                                     //Pin 2  
-#define pinDigital3 24                                     //Pin 3  light
-#define pinDigital4 25                                     //Pin 4  Watering
+#define pinDigital3 24                                     //Pin 3  
+#define pinDigital4 25                                     //Pin 4  
 #define pinDigital5 26                                     //Pin 5
 #define pinDigital6 27                                     //Pin 6
 #define pinDigital7 28                                     //Pin 7
@@ -57,8 +61,8 @@ LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);             // Length and width for 
 
 
 //Menue shit 
-#define menue_options 5                                 //Ammount of Options for first Menue
-#define info_menue_options 4                            //Ammount of Options for Info Menue (Temp,light, etc.)
+#define menue_options 6                                 //Ammount of Options for first Menue
+#define info_menue_options 3                            //Ammount of Options for Info Menue (Temp,light, etc.)
 #define mode_menue_options 5                            //Ammount of Options for Mode Menue (Plant type)
 
 
@@ -68,15 +72,15 @@ const char* menue_names [menue_options]=
     "Dach", 
     "Licht", 
     "Wasser", 
-    "Automatik"
+    "Automatik",
+    "Umluft"
 };
     
 const char* info_menue[info_menue_options]=
 {
     "Temperatur:",
     "Feuchte   :",
-    "Modus     :",
-    "Laufzeit  :"
+    "Modus     :"
 };
 
 const char* mode_menue[mode_menue_options] =
@@ -103,14 +107,14 @@ int mode_menue_select = 0;                              //saves the chosen menue
 SimpleDHT22 dht22(pinDHT22);  
 char temp[10];                                          //string for Temp output 
 char hum[10];                                           //string for humidity output
-char runt[10];                                          //string for runtime ouput 
+char runt[10];                                          //string for Volrage ouput 
 
 //Temp, Humidity Sensor
 float temperature = 0;
 float humidity = 0;
 int brightness = 0;
 int err = SimpleDHTErrSuccess;
-float runtime = 0;
+float voltage = 0;
 
 
 //system time 
@@ -118,7 +122,10 @@ unsigned long time  = 0;                                //Time for On/off button
 unsigned long time1 = 0;                                //Time for Temp, Humidity Sensor
 unsigned long time2 = 0;                                //Time for Mode menue
 unsigned long time3 = 0;                                //Time for Active Automatic Menue
-unsigned long time4 = 0;                                //Time for Watering 
+unsigned long time4 = 0;                                //Time for Watering
+unsigned long time5 = 0;                                //Time for Watering break
+unsigned long time6 = 0;
+bool watering_switch = false;
 #define break_time 350                                  //Break time between each input
 
 typedef struct 
@@ -183,7 +190,14 @@ void setup(void)
     Serial.println(my_lcd.Read_ID(), HEX);                  //Write LCD display ID
 
     //Pin modes
-    pinMode(pinDigital1, OUTPUT);                           //Output for Vent
+    pinMode(pinDigital1, OUTPUT);                           //Output for Relai 1 Ventilator 
+    pinMode(pinDigital2, OUTPUT);                           //Output for Relai 2 Light
+    pinMode(pinDigital3, OUTPUT);                           //Output for Relai 3 WaterPump
+    pinMode(pinDigital4, OUTPUT);                           //Output for Relai 4 WindSim. vent
+    pinMode(pinDigital5, OUTPUT);                           //Output for Relai 5
+    pinMode(pinDigital6, OUTPUT);                           //Output for Relai 6
+    pinMode(pinDigital7, OUTPUT);                           //Output for Relai 7
+    //pinMode(pwmPin1, INPUT);                                //Read Voltage
     pinMode(pinBrightness, INPUT);                          //Input for Brightness
 
     //Colour of the Background 
@@ -228,18 +242,18 @@ void temp_hum()
     {
         //draw over old input a rectangle
         my_lcd.Set_Draw_color(BACKGROUND);
-        my_lcd.Fill_Rectangle(menue_Xoffset + 197, 30 * 1 + (menue_options * 30) + 60, menue_Xoffset + 300, 30 * 1 + (menue_options * 30) + 85);    //Temp overwrite
-        my_lcd.Fill_Rectangle(menue_Xoffset + 197, 30 * 2 + (menue_options * 30) + 60, menue_Xoffset + 300, 30 * 2 + (menue_options * 30) + 85);    //Hum overwrite
-        my_lcd.Fill_Rectangle(menue_Xoffset + 197, 30 * 3 + (menue_options * 30) + 60, menue_Xoffset + 300, 30 * 3 + (menue_options * 30) + 85);    //Bright. overwrite
-        my_lcd.Fill_Rectangle(menue_Xoffset + 197, 30 * 4 + (menue_options * 30) + 60, menue_Xoffset + 300, 30 * 4 + (menue_options * 30) + 85);    //Runtime overwrite
+        my_lcd.Fill_Rectangle(menue_Xoffset + 197, 30 * 1 + (menue_options * 30) + 60, menue_Xoffset + 300, 30 * 4 + (menue_options * 30) + 85);    //Old date overwrite rectangle
 
         //if error appears suddenly 
+        /*
         if ((err = dht22.read2 (&temperature, &humidity, NULL)) != SimpleDHTErrSuccess) 
         {
             show_string("err", menue_Xoffset + 197, 30 * 1 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);
+            show_string("pin51", menue_Xoffset + 197, 30 * 2 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);
+            show_string("pin49", menue_Xoffset + 197, 30 * 3 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);
             delay(2000);
         }                               
-        
+       */ 
 
         //write Float into string 
         //dtostrf(float, minWidth, afterDec, buf)
@@ -264,11 +278,13 @@ void temp_hum()
             show_string("Nacht", menue_Xoffset + 197, 30 * 3 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);       //Night write
         }
 
-        runtime = ((millis() / 1000) / 60);
-        dtostrf(runtime, 3, 1, runt);
-        strcat(runt, " m");
+        //voltage = analogRead(pwmPin1);
+        //Serial.print(voltage);
+        //Serial.print("\n");
+        //dtostrf(voltage, 3, 1, runt);
+        //strcat(runt, " V");
 
-        show_string(runt, menue_Xoffset + 197, 30 * 4 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);              //write Runtime 
+        //show_string(runt, menue_Xoffset + 197, 30 * 4 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);              //write Runtime 
         time1 = millis();
     }
 }
@@ -330,13 +346,13 @@ void loop(void)
     {
         if (menue_toggle[2])
         {   
-            digitalWrite(pinDigital3, HIGH);
+            digitalWrite(pinDigital2, HIGH);
             Serial.print("Third Option ON - DigitalPin3\n");
             old_flag[2] = menue_toggle[2];
         }
         else
         {
-            digitalWrite(pinDigital3, LOW);
+            digitalWrite(pinDigital2, LOW);
             Serial.print("Third Option OFF - DigitalPin3\n");
             old_flag[2] = menue_toggle[2];
         }
@@ -347,13 +363,13 @@ void loop(void)
     {
         if (menue_toggle[3])
         {   
-            digitalWrite(pinDigital4, HIGH);
+            digitalWrite(pinDigital3, HIGH);
             Serial.print("Fourth Option ON - DigitalPin4\n");
             old_flag[3] = menue_toggle[3];
         }
         else
         {
-            digitalWrite(pinDigital4, LOW);
+            digitalWrite(pinDigital3, LOW);
             Serial.print("Third Option OFF - DigitalPin4\n");
             old_flag[3] = menue_toggle[3];
         }
@@ -361,52 +377,74 @@ void loop(void)
 
     //temp, hum, light_time, watering_time, watering_break
     //5th option toggle, Activates the automatic mode 
-    if(menue_toggle[4] != old_flag[4])
+    if(menue_toggle[4] != old_flag[4] && time3 + 1000 < millis())
     {
         //check if temp or hum is too high
-        if ((temperature > autonom[mode_menue_select].temperature || humidity > autonom[mode_menue_select].humidity) && time3 + 1000 < millis())
+        if (temperature > autonom[mode_menue_select].temperature || humidity > autonom[mode_menue_select].humidity)
         {
             //activate vent
             digitalWrite(pinDigital1, HIGH);
             //activate motor for Window opener
-            analogWrite(pwmPin2, 50);
+            analogWrite(pwmPin2, 50 );                   //one motor
+            analogWrite(pwmPin3, 250);                   //second one on other side
             Serial.print("TEMP/HUM zu hoch\n");
             time3 = millis();
         }
         //if Temp and hum is in normal state then vent off and motor back to close position
-        else if ((temperature < autonom[mode_menue_select].temperature && humidity < autonom[mode_menue_select].humidity) && time3 + 1000 < millis())
+        else if (temperature < autonom[mode_menue_select].temperature && humidity < autonom[mode_menue_select].humidity)
         {
             digitalWrite(pinDigital1, LOW);
-            analogWrite(pwmPin2, 250);
+            analogWrite(pwmPin2, 250);                   //one motor
+            analogWrite(pwmPin3, 50 );                   //second one on other side
             Serial.print("TEMP/HUM zu niedrig\n");
             time3 = millis();
         }
         
         //lööömpp time 
         
-
-        //water pump on for specific time and off after configured time 
-        //Full speed version (for Slower versions add Resistors and same if dependency just other pin)
-
-        /*
-        if (time3 + autonom[mode_menue_select].watering_break <= millis())
+        if(autonom[mode_menue_select].watering_time)
         {
-            digitalWrite(pinDigital4, HIGH);
-            time4 = millis() + autonom[mode_menue_select].watering_break;
+
         }
-        else if (time4 <= millis())
+
+        //water pump on for specific time and off after configured time
+        if (watering_switch)
         {
-            digitalWrite(pinDigital4, LOW);
+            digitalWrite(pinDigital3, LOW);
         }
-        */
-        //time3 = millis();
+        else if (time4 >= millis())
+        {
+            digitalWrite(pinDigital3, HIGH);
+            if(!watering_switch)
+            {
+                time4 = millis() + autonom[mode_menue_select].watering_time;
+                watering_switch = true;
+            }
+        }
+        
+        time3 = millis();
     }
     else if (menue_toggle[4] != old_flag[4])
     {
         old_flag[4] = menue_toggle[4];
     }
 
-
+    // sixth option manual mode (Umluft)
+    if (menue_toggle[5] != old_flag[5] && !menue_toggle[4])
+    {
+        if (menue_toggle[5])
+        {   
+            digitalWrite(pinDigital4, HIGH);
+            Serial.print("sixth Option ON - DigitalPin4\n");
+            old_flag[5] = menue_toggle[5];
+        }
+        else
+        {
+            digitalWrite(pinDigital4, LOW);
+            Serial.print("sixth Option OFF - DigitalPin4\n");
+            old_flag[5] = menue_toggle[5];
+        }
+    }
 
 
     //Checks for system time and if pressed with the right pressure 
