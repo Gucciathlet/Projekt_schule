@@ -122,17 +122,21 @@ unsigned long time  = 0;                                //Time for On/off button
 unsigned long time1 = 0;                                //Time for Temp, Humidity Sensor
 unsigned long time2 = 0;                                //Time for Mode menue
 unsigned long time3 = 0;                                //Time for Active Automatic Menue
-unsigned long time4 = 0;                                //Time for Watering
-unsigned long time5 = 0;                                //Time for Watering break
-unsigned long time6 = 0;
-bool watering_switch = false;
-#define break_time 350                                  //Break time between each input
+unsigned long time4 = 0;                                //Time for light
+unsigned long time5 = 0;                                //Time for light break
+unsigned long time6 = 0;                                //Time for watering
+unsigned long time7 = 0;                                //Time for watering break
+
+bool watering_switch = false;               
+bool light_switch = true;
+#define break_time 350                                  //Break time between each user input
 
 typedef struct 
 {
     float temperature;
     float humidity;
     int light_time;
+    int light_break;
     int watering_time;
     int watering_break;
 }plant_modes;
@@ -174,12 +178,12 @@ void setup(void)
 {    
     //diffrent preconfigured modes
     //First mode
-    //temp, hum, light_time, watering_time, watering_break
-    autonom[0] = {23.0, 80.0, 30000, 5000, 30000};
-    autonom[1] = {23.0, 80.0, 30000, 5000, 30000};
-    autonom[2] = {23.0, 80.0, 30000, 5000, 30000};
-    autonom[3] = {23.0, 80.0, 30000, 5000, 30000};
-    autonom[4] = {23.0, 80.0, 30000, 5000, 30000};
+    //temp, hum, light_time, light_break, watering_time, watering_break
+    autonom[0] = {23.0, 80.0, 2000, 5000, 5000, 30000};
+    autonom[1] = {23.0, 80.0, 1000, 2000, 10000, 5000};
+    autonom[2] = {23.0, 80.0, 30000, 5000, 5000, 30000};
+    autonom[3] = {23.0, 80.0, 30000, 5000, 5000, 30000};
+    autonom[4] = {23.0, 80.0, 30000, 5000, 5000, 30000};
     
 
 
@@ -245,7 +249,7 @@ void temp_hum()
         my_lcd.Fill_Rectangle(menue_Xoffset + 197, 30 * 1 + (menue_options * 30) + 60, menue_Xoffset + 300, 30 * 4 + (menue_options * 30) + 85);    //Old date overwrite rectangle
 
         //if error appears suddenly 
-        /*
+
         if ((err = dht22.read2 (&temperature, &humidity, NULL)) != SimpleDHTErrSuccess) 
         {
             show_string("err", menue_Xoffset + 197, 30 * 1 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);
@@ -253,7 +257,7 @@ void temp_hum()
             show_string("pin49", menue_Xoffset + 197, 30 * 3 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);
             delay(2000);
         }                               
-       */ 
+
 
         //write Float into string 
         //dtostrf(float, minWidth, afterDec, buf)
@@ -375,12 +379,12 @@ void loop(void)
         }
     }
 
-    //temp, hum, light_time, watering_time, watering_break
+    //temp, hum, light_time, light_break, watering_time, watering_break
     //5th option toggle, Activates the automatic mode 
-    if(menue_toggle[4] != old_flag[4] && time3 + 1000 < millis())
+    if(menue_toggle[4] != old_flag[4])
     {
         //check if temp or hum is too high
-        if (temperature > autonom[mode_menue_select].temperature || humidity > autonom[mode_menue_select].humidity)
+        if ((temperature > autonom[mode_menue_select].temperature || humidity > autonom[mode_menue_select].humidity) && time3 + 1000 < millis())
         {
             //activate vent
             digitalWrite(pinDigital1, HIGH);
@@ -388,41 +392,61 @@ void loop(void)
             analogWrite(pwmPin2, 50 );                   //one motor
             analogWrite(pwmPin3, 250);                   //second one on other side
             Serial.print("TEMP/HUM zu hoch\n");
+
+            //constant slow fan
+            digitalWrite(pinDigital4, LOW);             //Turn off for circulation when opening up
             time3 = millis();
         }
         //if Temp and hum is in normal state then vent off and motor back to close position
-        else if (temperature < autonom[mode_menue_select].temperature && humidity < autonom[mode_menue_select].humidity)
+        else if ((temperature < autonom[mode_menue_select].temperature || humidity < autonom[mode_menue_select].humidity) && time3 + 1000 < millis())
         {
             digitalWrite(pinDigital1, LOW);
             analogWrite(pwmPin2, 250);                   //one motor
             analogWrite(pwmPin3, 50 );                   //second one on other side
             Serial.print("TEMP/HUM zu niedrig\n");
+
+            //constant slow fan
+            digitalWrite(pinDigital4, HIGH);            //Turn on for constant wind inside
+
             time3 = millis();
         }
         
         //lööömpp time 
-        
-        if(autonom[mode_menue_select].watering_time)
+        if(millis() > time4)
         {
+            time4 = autonom[mode_menue_select].light_time + millis();
 
-        }
-
-        //water pump on for specific time and off after configured time
-        if (watering_switch)
-        {
-            digitalWrite(pinDigital3, LOW);
-        }
-        else if (time4 >= millis())
-        {
-            digitalWrite(pinDigital3, HIGH);
-            if(!watering_switch)
+            if(light_switch)
             {
-                time4 = millis() + autonom[mode_menue_select].watering_time;
-                watering_switch = true;
+                digitalWrite(pinDigital2, HIGH);
+                light_switch = false;
+            }
+            else if (!light_switch)
+            {
+                time4 = autonom[mode_menue_select].light_break + millis();
+                digitalWrite(pinDigital2, LOW);
+                light_switch = true;
             }
         }
-        
-        time3 = millis();
+
+        //Watering time 
+        if(millis() > time5)
+        {
+            time5 = autonom[mode_menue_select].watering_time + millis();
+
+            if(light_switch)
+            {
+                digitalWrite(pinDigital3, HIGH);
+                light_switch = false;
+            }
+            else if (!light_switch)
+            {
+                time5 = autonom[mode_menue_select].watering_break + millis();
+                digitalWrite(pinDigital3, LOW);
+                light_switch = true;
+            }
+        }
+
     }
     else if (menue_toggle[4] != old_flag[4])
     {
