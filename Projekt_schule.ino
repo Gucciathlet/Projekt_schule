@@ -1,11 +1,11 @@
 //Projekt der Schule für Lüftungs Modell
 
-#include "TouchScreen.h"                                //touch library
-#include "LCDWIKI_GUI.h"                                //Core graphics library
-#include "LCDWIKI_KBV.h"                                //Hardware-specific library
-#include "SimpleDHT.h"                                  //Temp / humidity sensor
-#include "switch_font.c"                                //Writing font and imported Pictures
-LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);             // Length and width for Display
+#include "TouchScreen.h"                                    //touch library
+#include "LCDWIKI_GUI.h"                                    //Core graphics library
+#include "LCDWIKI_KBV.h"                                    //Hardware-specific library
+#include "SimpleDHT.h"                                      //Temp / humidity sensor
+#include "switch_font.c"                                    //Writing font and imported Pictures
+LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);                 // Length and width for Display
 
 //Defines the diffrent colours
 #define BLACK   0x0000
@@ -17,21 +17,17 @@ LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);             // Length and width for 
 #define YELLOW  0xFFE0
 #define WHITE   0xFFFF
 
-//Voltage 
-#define REF_VOLTAGE    5.0
-#define PIN_STEPS   1023.0
-
 //Defines the Background Colours
 #define BACKGROUND RED
-#define MENUE_COLOUR BLUE
+#define MENUE_COLOUR CYAN
 
 #define MINPRESSURE 10
 #define MAXPRESSURE 1000
 
-#define YP A3                                           // must be an analog pin, use "An" notation!
-#define XM A2                                           // must be an analog pin, use "An" notation!
-#define YM 9                                            //9 can be a digital pin
-#define XP 8                                            //8 can be a digital pin
+#define YP A3                                               // must be an analog pin, use "An" notation!
+#define XM A2                                               // must be an analog pin, use "An" notation!
+#define YM 9                                                //9 can be a digital pin
+#define XP 8                                                //8 can be a digital pin
 
 #define TS_MINX 906
 #define TS_MAXX 116
@@ -44,26 +40,26 @@ LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);             // Length and width for 
 #define STATUS_Y 65
 
 //PWM Motor pins
-#define pwmPin1 44                                      //Motor Pin 1
-#define pwmPin2 45                                      //Motor Pin 2
-#define pwmPin3 46                                      //Motor Pin 3
+#define pwmPin1 44                                          //Motor Pin 1
+#define pwmPin2 45                                          //Motor Pin 2
+#define pwmPin3 46                                          //Motor Pin 3
 
 //Digital pins
-#define pinDigital1 22                                     //Pin 1  
-#define pinDigital2 23                                     //Pin 2  
-#define pinDigital3 24                                     //Pin 3  
-#define pinDigital4 25                                     //Pin 4  
-#define pinDigital5 26                                     //Pin 5
-#define pinDigital6 27                                     //Pin 6
-#define pinDigital7 28                                     //Pin 7
-#define pinDigital8 29                                     //Pin 8
-#define pinDigital9 30                                     //Pin 9
+#define pinDigital1 22                                      //Pin 1  
+#define pinDigital2 23                                      //Pin 2  
+#define pinDigital3 24                                      //Pin 3  
+#define pinDigital4 25                                      //Pin 4  
+#define pinDigital5 26                                      //Pin 5
+#define pinDigital6 27                                      //Pin 6
+#define pinDigital7 28                                      //Pin 7
+#define pinDigital8 29                                      //Pin 8
+#define pinDigital9 30                                      //Pin 9
 
 
 //Menue shit 
-#define menue_options 6                                 //Ammount of Options for first Menue
-#define info_menue_options 3                            //Ammount of Options for Info Menue (Temp,light, etc.)
-#define mode_menue_options 5                            //Ammount of Options for Mode Menue (Plant type)
+#define menue_options 6                                     //Ammount of Options for first Menue
+#define info_menue_options 3                                //Ammount of Options for Info Menue (Temp,light, etc.)
+#define mode_menue_options 5                                //Ammount of Options for Mode Menue (Plant type)
 
 
 const char* menue_names [menue_options]=
@@ -174,14 +170,16 @@ bool is_pressed(int16_t x1,int16_t y1,int16_t x2,int16_t y2,int16_t px,int16_t p
 }
 
 
+
+
 void setup(void) 
 {    
     //diffrent preconfigured modes
     //First mode
     //temp, hum, light_time, light_break, watering_time, watering_break
-    autonom[0] = {23.0, 80.0, 2000, 5000, 5000, 30000};
-    autonom[1] = {23.0, 80.0, 1000, 2000, 10000, 5000};
-    autonom[2] = {23.0, 80.0, 30000, 5000, 5000, 30000};
+    autonom[0] = {25.0, 80.0, 2000, 5000, 5000, 30000};
+    autonom[1] = {25.0, 80.0, 1000, 2000, 10000, 5000};
+    autonom[2] = {25.0, 80.0, 30000, 5000, 5000, 30000};
     autonom[3] = {23.0, 80.0, 30000, 5000, 5000, 30000};
     autonom[4] = {23.0, 80.0, 30000, 5000, 5000, 30000};
     
@@ -212,7 +210,6 @@ void setup(void)
 
 
     //Draw Settings-Menue with lines inbetween
-
     for (int a = 0; a < menue_options; a++)
     {
         show_string(menue_names[a], menue_Xoffset, 30 * (a + 1) + 40, 3, BLACK, BLACK, true);
@@ -236,8 +233,8 @@ void setup(void)
     {
         mode_menue_toggle[a] = false;
     }
-
 }
+
 //read and write temp / hum and light 
 void temp_hum()
 {
@@ -301,7 +298,6 @@ void loop(void)
     digitalWrite(13, HIGH);
     TSPoint p = ts.getPoint();
     digitalWrite(13, LOW);
-
 
     pinMode(XM, OUTPUT);
     pinMode(YP, OUTPUT);
@@ -389,8 +385,15 @@ void loop(void)
             //activate vent
             digitalWrite(pinDigital1, HIGH);
             //activate motor for Window opener
-            analogWrite(pwmPin2, 50 );                   //one motor
-            analogWrite(pwmPin3, 250);                   //second one on other side
+
+            //check if brightness is 
+            if(!brightness)
+            {
+                analogWrite(pwmPin2, 50 );                   //one motor
+                analogWrite(pwmPin3, 250);                   //second one on other side
+                Serial.print("Day and temp to high\n");
+            }
+            
             Serial.print("TEMP/HUM zu hoch\n");
 
             //constant slow fan
@@ -482,8 +485,11 @@ void loop(void)
         {
             for (int a = 0; a < mode_menue_options; a++)
             {
-                my_lcd.Set_Draw_color(GREEN);                                                                                   //Draw colour GREEN
-                my_lcd.Fill_Rectangle(5, 20 * (a + 1) + 15, menue_Xoffset + 110, 20 * (a + 1) + 35);                            //Fills Menue Background GREEN
+                my_lcd.Set_Draw_color(MENUE_COLOUR);    
+                //Draw colour GREEN
+                my_lcd.Fill_Round_Rectangle(5, 20 * (a + 1) + 15, menue_Xoffset + 110, 20 * (a + 1) + 35, 12);                  //Fills Menue Background GREEN
+                my_lcd.Set_Draw_color(BLACK);
+                my_lcd.Draw_Round_Rectangle(5, 20 * (a + 1) + 15, menue_Xoffset + 110, 20 * (a + 1) + 35, 12);
                 show_string(mode_menue[a], menue_Xoffset, 20 * (a + 1) + 20, 2, BLACK, BLACK, true);                            //Writes mode menue options
             }
             mode_menue_flag = true;
@@ -502,7 +508,7 @@ void loop(void)
                     //draw over old Option & writes new mode on TOP
                     my_lcd.Set_Draw_color(BACKGROUND);  
                     my_lcd.Fill_Rectangle(150, 5, 350, 40); 
-                    show_string(mode_menue[a], 150, 5, 4, GREEN, GREEN, true);
+                    show_string(mode_menue[a], 150, 5, 4, MENUE_COLOUR, MENUE_COLOUR, true);
                     //Saves the selected Menue for automatic Mode
                     mode_menue_select = a;          
 
