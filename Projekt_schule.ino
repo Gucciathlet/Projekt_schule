@@ -16,9 +16,10 @@ LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);                 // Length and width 
 #define MAGENTA 0xF81F
 #define YELLOW  0xFFE0
 #define WHITE   0xFFFF
+#define GREY    0xAAAA
 
 //Defines the Background Colours
-#define BACKGROUND RED
+#define BACKGROUND BLUE
 #define MENUE_COLOUR CYAN
 
 #define MINPRESSURE 10
@@ -215,7 +216,12 @@ void setup(void)
         show_string(menue_names[a], menue_Xoffset, 30 * (a + 1) + 40, 3, BLACK, BLACK, true);
         my_lcd.Set_Draw_color(BLACK);
         my_lcd.Draw_Fast_HLine( 0, 30 * (a + 1) + 65, my_lcd.Get_Display_Width());
-        show_picture(switch_off_2, sizeof(switch_off_2)/2, menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 269, 30 * (a + 1) + 64);
+        //show_picture(switch_off_2, sizeof(switch_off_2)/2, menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 269, 30 * (a + 1) + 64);
+
+        my_lcd.Set_Draw_color(RED);
+        my_lcd.Fill_Round_Rectangle(menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 290, 30 * (a + 1) + 64, 8);
+        my_lcd.Set_Draw_color(BLACK);
+        my_lcd.Draw_Round_Rectangle(menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 290, 30 * (a + 1) + 64, 8);
 
         //Filling array with false (offline) for diffrent functions
         menue_toggle[a] = false;
@@ -534,18 +540,24 @@ void loop(void)
         {
             for (int a = 0; a < menue_options; a++)
             {
-                if(is_pressed(menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 269, 30 * (a + 1) + 64, p.x,p.y))
+                if(is_pressed(menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 290, 30 * (a + 1) + 64, p.x,p.y))
                 {
                     if(menue_toggle[a])
                         {   
-                            show_picture(switch_off_2, sizeof(switch_off_2)/2, menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 269, 30 * (a + 1) + 64);
-        
+                            //show_picture(switch_off_2, sizeof(switch_off_2)/2, menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 269, 30 * (a + 1) + 64);
+                            my_lcd.Set_Draw_color(RED);
+                            my_lcd.Fill_Round_Rectangle(menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 290, 30 * (a + 1) + 64, 8);
+                            my_lcd.Set_Draw_color(BLACK);
+                            my_lcd.Draw_Round_Rectangle(menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 290, 30 * (a + 1) + 64, 8);                            
                             menue_toggle[a] = false;
                         }
                         else
                         {  
-                            show_picture(switch_on_2, sizeof(switch_on_2)/2, menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 269, 30 * (a + 1) + 64);
-                            
+                            //show_picture(switch_on_2, sizeof(switch_on_2)/2, menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 269, 30 * (a + 1) + 64);
+                            my_lcd.Set_Draw_color(GREEN);
+                            my_lcd.Fill_Round_Rectangle(menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 290, 30 * (a + 1) + 64, 8);
+                            my_lcd.Set_Draw_color(BLACK);
+                            my_lcd.Draw_Round_Rectangle(menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 290, 30 * (a + 1) + 64, 8);                               
                             menue_toggle[a] = true;
                         }
                     time = millis();
