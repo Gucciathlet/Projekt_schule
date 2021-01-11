@@ -16,10 +16,9 @@ LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);                 // Length and width 
 #define MAGENTA 0xF81F
 #define YELLOW  0xFFE0
 #define WHITE   0xFFFF
-#define GREY    0xAAAA
 
 //Defines the Background Colours
-#define BACKGROUND BLUE
+#define BACKGROUND MAGENTA
 #define MENUE_COLOUR CYAN
 
 #define MINPRESSURE 10
@@ -67,10 +66,10 @@ const char* menue_names [menue_options]=
 {
     "Ventilator", 
     "Dach", 
-    "Licht", 
+    "Umluft", 
     "Wasser", 
     "Automatik",
-    "Umluft"
+    "Licht"
 };
     
 const char* info_menue[info_menue_options]=
@@ -194,13 +193,13 @@ void setup(void)
 
     //Pin modes
     pinMode(pinDigital1, OUTPUT);                           //Output for Relai 1 Ventilator 
-    pinMode(pinDigital2, OUTPUT);                           //Output for Relai 2 Light
+    pinMode(pinDigital2, OUTPUT);                           //Output for Relai 2 WindSimulation
     pinMode(pinDigital3, OUTPUT);                           //Output for Relai 3 WaterPump
-    pinMode(pinDigital4, OUTPUT);                           //Output for Relai 4 WindSim. vent
-    pinMode(pinDigital5, OUTPUT);                           //Output for Relai 5
-    pinMode(pinDigital6, OUTPUT);                           //Output for Relai 6
+    pinMode(pinDigital4, OUTPUT);                           //Output for Relai 4 Light 1
+    pinMode(pinDigital5, OUTPUT);                           //Output for Relai 5 Light 2
+    pinMode(pinDigital6, OUTPUT);                           //Output for Relai 6 Light 3
     pinMode(pinDigital7, OUTPUT);                           //Output for Relai 7
-    //pinMode(pwmPin1, INPUT);                                //Read Voltage
+    //pinMode(pwmPin1, INPUT);                              //Read Voltage
     pinMode(pinBrightness, INPUT);                          //Input for Brightness
 
     //Colour of the Background 
@@ -403,7 +402,7 @@ void loop(void)
             Serial.print("TEMP/HUM zu hoch\n");
 
             //constant slow fan
-            digitalWrite(pinDigital4, LOW);             //Turn off for circulation when opening up
+            digitalWrite(pinDigital2, LOW);             //Turn off for circulation when opening up
             time3 = millis();
         }
         //if Temp and hum is in normal state then vent off and motor back to close position
@@ -415,25 +414,29 @@ void loop(void)
             Serial.print("TEMP/HUM zu niedrig\n");
 
             //constant slow fan
-            digitalWrite(pinDigital4, HIGH);            //Turn on for constant wind inside
+            digitalWrite(pinDigital2, HIGH);            //Turn on for constant wind inside
 
             time3 = millis();
         }
         
-        //lööömpp time 
+        //Light time & break 
         if(millis() > time4)
         {
             time4 = autonom[mode_menue_select].light_time + millis();
 
             if(light_switch)
             {
-                digitalWrite(pinDigital2, HIGH);
+                digitalWrite(pinDigital4, HIGH);
+                digitalWrite(pinDigital5, HIGH);
+                digitalWrite(pinDigital6, HIGH);
                 light_switch = false;
             }
             else if (!light_switch)
             {
                 time4 = autonom[mode_menue_select].light_break + millis();
-                digitalWrite(pinDigital2, LOW);
+                digitalWrite(pinDigital4, LOW);
+                digitalWrite(pinDigital5, LOW);
+                digitalWrite(pinDigital6, LOW);
                 light_switch = true;
             }
         }
@@ -443,16 +446,16 @@ void loop(void)
         {
             time5 = autonom[mode_menue_select].watering_time + millis();
 
-            if(light_switch)
+            if(watering_switch)
             {
                 digitalWrite(pinDigital3, HIGH);
-                light_switch = false;
+                watering_switch = false;
             }
-            else if (!light_switch)
+            else if (!watering_switch)
             {
                 time5 = autonom[mode_menue_select].watering_break + millis();
                 digitalWrite(pinDigital3, LOW);
-                light_switch = true;
+                watering_switch = true;
             }
         }
 
@@ -462,18 +465,24 @@ void loop(void)
         old_flag[4] = menue_toggle[4];
     }
 
-    // sixth option manual mode (Umluft)
+    // sixth option manual mode
     if (menue_toggle[5] != old_flag[5] && !menue_toggle[4])
     {
         if (menue_toggle[5])
         {   
             digitalWrite(pinDigital4, HIGH);
+            digitalWrite(pinDigital5, HIGH);
+            digitalWrite(pinDigital6, HIGH);
+
             Serial.print("sixth Option ON - DigitalPin4\n");
             old_flag[5] = menue_toggle[5];
         }
         else
         {
             digitalWrite(pinDigital4, LOW);
+            digitalWrite(pinDigital5, LOW);
+            digitalWrite(pinDigital6, LOW);
+
             Serial.print("sixth Option OFF - DigitalPin4\n");
             old_flag[5] = menue_toggle[5];
         }
