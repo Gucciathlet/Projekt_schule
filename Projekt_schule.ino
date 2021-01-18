@@ -92,6 +92,10 @@ const char* menue_names [menue_options]=
 };
     
 const char* info_menue[info_menue_options]= 
+{
+    "Temperatur:",
+    "Feuchte   :",
+    "Modus     :"
 };
 
 const char* mode_menue[mode_menue_options] =
@@ -99,7 +103,7 @@ const char* mode_menue[mode_menue_options] =
     "Tomate",
     "Zuchini",
     "Ananas",
-    "Gras",
+    "Traube",
     "Baum"
 };
 
@@ -161,11 +165,11 @@ bool is_pressed(int16_t x1,int16_t y1,int16_t x2,int16_t y2,int16_t px,int16_t p
 void setup(void) 
 {    
     //temp, hum, light_time, light_break, watering_time, watering_break
-    autonom[0] = {25.0, 80.0, 2000,  5000, 5000,  30000};
-    autonom[1] = {25.0, 80.0, 1000,  2000, 10000, 5000};
-    autonom[2] = {25.0, 80.0, 30000, 5000, 5000,  30000};
-    autonom[3] = {25.0, 80.0, 30000, 5000, 5000,  30000};
-    autonom[4] = {25.0, 80.0, 30000, 5000, 5000,  30000};
+    autonom[0] = {25.0, 80.0, 5000,  10000, 10000,  30000};
+    autonom[1] = {25.0, 80.0, 1000,  3000,  10000,  5000};
+    autonom[2] = {22.5, 90.0, 10000, 5000,  20000,  8000};
+    autonom[3] = {28.0, 75.0, 30000, 5000,  5000,   30000};
+    autonom[4] = {25.0, 80.0, 30000, 5000,  5000,   30000};
 
     //Initialize Screen
     Serial.begin(9600);                                     
@@ -230,7 +234,7 @@ void temp_hum()
         my_lcd.Fill_Rectangle(menue_Xoffset + 197, 30 * 1 + (menue_options * 30) + 60, menue_Xoffset + 300, 30 * 4 + (menue_options * 30) + 85); 
 
         //Error Handler
-        if ((err = dht22.read2 (&temperature, &humidity, NULL))   SimpleDHTErrSuccess) 
+        if ((err = dht22.read2 (&temperature, &humidity, NULL))  != SimpleDHTErrSuccess) 
         {
             //Shows Info Pin
             show_string("err", menue_Xoffset + 197, 30 * 1 + (menue_options * 30) + 60, 3, BLACK, BACKGROUND, true);
@@ -238,9 +242,9 @@ void temp_hum()
             show_string("pin49", menue_Xoffset + 197, 30 * 3 + (menue_options * 30) + 60, 3, BLACK, BACKGROUND, true);
             delay(2000);
         }
-        else                               
-        {
-            //Write Float to String & output
+        else
+        {                                  
+           //Write Float to String & output
             dtostrf(humidity, 3, 1, hum);
             strcat(hum," %");
             dtostrf(temperature, 3, 1, temp);
@@ -258,7 +262,7 @@ void temp_hum()
             {
                 show_string("Nacht", menue_Xoffset + 197, 30 * 3 + (menue_options * 30) + 60, 3, BLACK, BACKGROUND, true); 
             }
-        }
+         }
         time1 = millis();
         
     }
@@ -299,15 +303,19 @@ void loop(void)
     {
         if (menue_toggle[1])
         {   
-            analogWrite(pwmPin2, 50 );
-            analogWrite(pwmPin3, 250);
+            //rechts
+            analogWrite(pwmPin2, 230);
+
+            //links
+            analogWrite(pwmPin3, 125); 
             old_flag[1] = menue_toggle[1];
             Serial.print("Menue Option 2 On\n");
         }
         else
         {
-            analogWrite(pwmPin2, 250);
-            analogWrite(pwmPin3, 50 );
+            analogWrite(pwmPin2, 125);
+
+            analogWrite(pwmPin3, 230);
             old_flag[1] = menue_toggle[1];
             Serial.print("Menue Option 2 Off\n");
         }
