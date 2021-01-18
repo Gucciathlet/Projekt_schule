@@ -40,7 +40,7 @@ LCDWIKI_KBV my_lcd(ILI9486,A3,A2,A1,A0,A4);                 // Length and width 
 TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 
 //PWM Motor pins
-#define pwmPin1 44                                          //Motor Pin 1
+#define pwmPin1 44                                          //pwm Pin 1
 #define pwmPin2 45                                          //Motor Pin 2
 #define pwmPin3 46                                          //Motor Pin 3
 
@@ -91,11 +91,7 @@ const char* menue_names [menue_options]=
     "Licht"
 };
     
-const char* info_menue[info_menue_options]=
-{
-    "Temperatur:",
-    "Feuchte   :",
-    "Modus     :"
+const char* info_menue[info_menue_options]= 
 };
 
 const char* mode_menue[mode_menue_options] =
@@ -128,6 +124,7 @@ unsigned long time4 = 0;                                    //Time for light
 unsigned long time5 = 0;                                    //Time for light break
 unsigned long time6 = 0;                                    //Time for watering
 unsigned long time7 = 0;                                    //Time for watering break
+unsigned long time8 = 0;                                    //Time for turning other options off
 
 
 //Show String
@@ -182,7 +179,7 @@ void setup(void)
     pinMode(pinDigital3,   OUTPUT);                         //Output for Relai 3 WaterPump
     pinMode(pinDigital4,   OUTPUT);                         //Output for Relai 4 Light 1
     pinMode(pinDigital5,   OUTPUT);                         //Output for Relai 5 Light 2
-    pinMode(pinDigital6,   OUTPUT);                         //Output for Relai 6 Light 3
+    pinMode(pinDigital6,   OUTPUT);                         //Output for Relai 6 Light 3                               
     pinMode(pinDigital7,   OUTPUT);                         //Output for Relai 7
     pinMode(pinBrightness, INPUT);                          //Input for Brightness
 
@@ -233,35 +230,37 @@ void temp_hum()
         my_lcd.Fill_Rectangle(menue_Xoffset + 197, 30 * 1 + (menue_options * 30) + 60, menue_Xoffset + 300, 30 * 4 + (menue_options * 30) + 85); 
 
         //Error Handler
-        if ((err = dht22.read2 (&temperature, &humidity, NULL)) != SimpleDHTErrSuccess) 
+        if ((err = dht22.read2 (&temperature, &humidity, NULL))   SimpleDHTErrSuccess) 
         {
             //Shows Info Pin
-            show_string("err", menue_Xoffset + 197, 30 * 1 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);
-            show_string("pin51", menue_Xoffset + 197, 30 * 2 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);
-            show_string("pin49", menue_Xoffset + 197, 30 * 3 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);
+            show_string("err", menue_Xoffset + 197, 30 * 1 + (menue_options * 30) + 60, 3, BLACK, BACKGROUND, true);
+            show_string("pin51", menue_Xoffset + 197, 30 * 2 + (menue_options * 30) + 60, 3, BLACK, BACKGROUND, true);
+            show_string("pin49", menue_Xoffset + 197, 30 * 3 + (menue_options * 30) + 60, 3, BLACK, BACKGROUND, true);
             delay(2000);
-        }                               
-
-        //Write Float to String & output
-        dtostrf(humidity, 3, 1, hum);
-        strcat(hum," %");
-        dtostrf(temperature, 3, 1, temp);
-        strcat(temp," C");
-        show_string(temp, menue_Xoffset + 197, 30 * 1 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);
-        show_string(hum,  menue_Xoffset + 197, 30 * 2 + (menue_options * 30) + 60, 3, BLACK, BLACK, true); 
-
-        //Day & Night
-        brightness = digitalRead(pinBrightness);
-        if (brightness == 0)
-        {
-            show_string("Tag", menue_Xoffset + 197, 30 * 3 + (menue_options * 30) + 60, 3, BLACK, BLACK, true);
         }
-        else
+        else                               
         {
-            show_string("Nacht", menue_Xoffset + 197, 30 * 3 + (menue_options * 30) + 60, 3, BLACK, BLACK, true); 
-        }
+            //Write Float to String & output
+            dtostrf(humidity, 3, 1, hum);
+            strcat(hum," %");
+            dtostrf(temperature, 3, 1, temp);
+            strcat(temp," C");
+            show_string(temp, menue_Xoffset + 197, 30 * 1 + (menue_options * 30) + 60, 3, BLACK, BACKGROUND, true);
+            show_string(hum,  menue_Xoffset + 197, 30 * 2 + (menue_options * 30) + 60, 3, BLACK, BACKGROUND, true); 
 
+            //Day & Night
+            brightness = digitalRead(pinBrightness);
+            if (brightness == 0)
+            {
+                show_string("Tag", menue_Xoffset + 197, 30 * 3 + (menue_options * 30) + 60, 3, BLACK, BACKGROUND, true);
+            }
+            else
+            {
+                show_string("Nacht", menue_Xoffset + 197, 30 * 3 + (menue_options * 30) + 60, 3, BLACK, BACKGROUND, true); 
+            }
+        }
         time1 = millis();
+        
     }
 }
 
@@ -441,19 +440,16 @@ void loop(void)
             }
         }
 
+        if (millis() > time8)
+        {
+            time8 = millis() + 1000;
+            automatic_switch = true;
+        }
     }
     else if (menue_toggle[4] != old_flag[4])
     {
-        //Overwrite other Options to OFF
-        digitalWrite(pinDigital1, LOW);
-        digitalWrite(pinDigital2, LOW);
-        digitalWrite(pinDigital3, LOW);
-        digitalWrite(pinDigital4, LOW);
-        digitalWrite(pinDigital5, LOW);
-        digitalWrite(pinDigital6, LOW);
         old_flag[4] = menue_toggle[4];
-        automatic_switch = true;
-    }
+    } 
 
     //Menue Option 6
     if (menue_toggle[5] != old_flag[5] && !menue_toggle[4])
