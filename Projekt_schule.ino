@@ -45,13 +45,13 @@ TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 #define pwmPin3 46                                          //Motor Pin 3
 
 //Digital pins
-#define pinDigital1 22                                      //Pin 1  
-#define pinDigital2 23                                      //Pin 2  
-#define pinDigital3 24                                      //Pin 3  
-#define pinDigital4 25                                      //Pin 4  
-#define pinDigital5 26                                      //Pin 5
-#define pinDigital6 27                                      //Pin 6
-#define pinDigital7 28                                      //Pin 7
+#define pinDigital1 22                                      //Pin 1  Vent
+#define pinDigital2 23                                      //Pin 2  Umluft
+#define pinDigital3 24                                      //Pin 3  Wasser
+#define pinDigital4 25                                      //Pin 4  Lampe1
+#define pinDigital5 26                                      //Pin 5  Lampe2
+#define pinDigital6 27                                      //Pin 6  Lapme3
+#define pinDigital7 28                                      //Pin 7  
 #define pinDigital8 29                                      //Pin 8
 #define pinDigital9 30                                      //Pin 9
 
@@ -66,7 +66,7 @@ bool mode_menue_toggle[mode_menue_options];                 //Mode   Menue flag
 bool old_flag[menue_options];                               //Normal Menue old flag
 bool mode_menue_flag  = false;                              //Mode   Menue activated
 int mode_menue_select = 0;                                  //Mode   Menue selected option
-bool watering_switch  = false;               
+bool watering_switch  = true;               
 bool light_switch     = true;
 bool automatic_switch = true;   
 
@@ -103,8 +103,8 @@ const char* mode_menue[mode_menue_options] =
     "Tomate",
     "Zuchini",
     "Ananas",
-    "Traube",
-    "Baum"
+    "Temp/Hum",
+    "Radies."
 };
 
 
@@ -129,6 +129,7 @@ unsigned long time5 = 0;                                    //Time for light bre
 unsigned long time6 = 0;                                    //Time for watering
 unsigned long time7 = 0;                                    //Time for watering break
 unsigned long time8 = 0;                                    //Time for turning other options off
+unsigned long time9 = 0;                                    //Time for slow motor
 
 
 //Show String
@@ -165,11 +166,11 @@ bool is_pressed(int16_t x1,int16_t y1,int16_t x2,int16_t y2,int16_t px,int16_t p
 void setup(void) 
 {    
     //temp, hum, light_time, light_break, watering_time, watering_break
-    autonom[0] = {25.0, 80.0, 5000,  10000, 10000,  30000};
+    autonom[0] = {25.0, 80.0, 10000,  3000, 5000,  20000};
     autonom[1] = {25.0, 80.0, 1000,  3000,  10000,  5000};
     autonom[2] = {22.5, 90.0, 10000, 5000,  20000,  8000};
-    autonom[3] = {28.0, 75.0, 30000, 5000,  5000,   30000};
-    autonom[4] = {25.0, 80.0, 30000, 5000,  5000,   30000};
+    autonom[3] = {25.0, 92.0, 20000, 5000,  10000,   30000};
+    autonom[4] = {25.0, 90.0, 28800000, 57600000,  10000,   86370000};
 
     //Initialize Screen
     Serial.begin(9600);                                     
@@ -222,6 +223,7 @@ void setup(void)
     {
         mode_menue_toggle[a] = false;
     }
+    
 }
 
 
@@ -238,9 +240,8 @@ void temp_hum()
         {
             //Shows Info Pin
             show_string("err", menue_Xoffset + 197, 30 * 1 + (menue_options * 30) + 60, 3, BLACK, BACKGROUND, true);
-            show_string("pin51", menue_Xoffset + 197, 30 * 2 + (menue_options * 30) + 60, 3, BLACK, BACKGROUND, true);
-            show_string("pin49", menue_Xoffset + 197, 30 * 3 + (menue_options * 30) + 60, 3, BLACK, BACKGROUND, true);
-            delay(2000);
+            Serial.print(err);
+            //delay(2000);
         }
         else
         {                                  
@@ -269,20 +270,19 @@ void temp_hum()
 }
 
 
-
 void loop(void)
 {
+    
     digitalWrite(13, HIGH);
     TSPoint p = ts.getPoint();
     digitalWrite(13, LOW);
     pinMode(XM, OUTPUT);
     pinMode(YP, OUTPUT);
-    
     //Info
     temp_hum();
     
     //Menue Option 1
-    if (menue_toggle[0] != old_flag[0] && !menue_toggle[4])
+    if (menue_toggle[0] != old_flag[0])
     {
         if (menue_toggle[0])
         {   
@@ -299,7 +299,7 @@ void loop(void)
     }
 
     //Menue Option 2
-    if (menue_toggle[1] != old_flag[1] && !menue_toggle[4])
+    if (menue_toggle[1] != old_flag[1])
     {
         if (menue_toggle[1])
         {   
@@ -322,7 +322,7 @@ void loop(void)
     }
 
     //Menue Option 3
-    if (menue_toggle[2] != old_flag[2] && !menue_toggle[4])
+    if (menue_toggle[2] != old_flag[2])
     {
         if (menue_toggle[2])
         {   
@@ -339,7 +339,7 @@ void loop(void)
     }
 
     //Menue Option 4
-    if (menue_toggle[3] != old_flag[3] && !menue_toggle[4])
+    if (menue_toggle[3] != old_flag[3])
     {
         if (menue_toggle[3])
         {   
@@ -359,108 +359,134 @@ void loop(void)
     if(menue_toggle[4] != old_flag[4])
     {
         //Overwrite Activated Options
-        if(automatic_switch)
+        if (menue_toggle[4])
         {
-            for (int a = 0; a < menue_options; a++)
+            if(automatic_switch)
             {
-                if(a != 4)
+                for (int a = 0; a < menue_options; a++)
                 {
-                    menue_toggle[a] = false;
-                    my_lcd.Set_Draw_color(RED);
-                    my_lcd.Fill_Round_Rectangle(menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 290, 30 * (a + 1) + 64, 10);
-                    my_lcd.Set_Draw_color(BLACK);
-                    my_lcd.Draw_Round_Rectangle(menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 290, 30 * (a + 1) + 64, 10); 
+                    if(a != 4)
+                    {
+                        menue_toggle[a] = false;
+                        my_lcd.Set_Draw_color(RED);
+                        my_lcd.Fill_Round_Rectangle(menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 290, 30 * (a + 1) + 64, 10);
+                        my_lcd.Set_Draw_color(BLACK);
+                        my_lcd.Draw_Round_Rectangle(menue_Xoffset + 240, 30 * (a + 1) + 35, menue_Xoffset + 290, 30 * (a + 1) + 64, 10); 
+                    }
+                }
+                automatic_switch = false;
+            }
+
+            //Temp & Hum check
+            if ((temperature > autonom[mode_menue_select].temperature || humidity > autonom[mode_menue_select].humidity) && time3 + 1000 < millis())
+            {
+                //Vent
+                digitalWrite(pinDigital1, HIGH);
+
+                //If it's day
+                if(!brightness)
+                {
+                    //Servo motors left & right open
+                    analogWrite(pwmPin2, 230 );                
+                    analogWrite(pwmPin3, 125);
+                }
+                //Slow air fan
+                digitalWrite(pinDigital2, LOW);
+                time3 = millis();
+                Serial.print("TEMP/HUM zu hoch\n");
+            } 
+            else if ((temperature < autonom[mode_menue_select].temperature || humidity < autonom[mode_menue_select].humidity) && time3 + 1000 < millis())
+            {
+                //Vent 
+                digitalWrite(pinDigital1, LOW);
+
+                //Servo motors left & right
+                analogWrite(pwmPin2, 125);             
+                analogWrite(pwmPin3, 230 );                  
+
+                //Slow air fan 
+                if(!brightness)
+                {
+                    digitalWrite(pinDigital2, HIGH);            
+                }
+                time3 = millis();
+                Serial.print("TEMP/HUM zu niedrig\n");
+            }
+            
+            //Cycle for the light
+            if(millis() > time4)
+            {
+                switch (light_switch)
+                {
+                case true:
+                    time4 = autonom[mode_menue_select].light_time + millis();
+                    digitalWrite(pinDigital4, HIGH);
+                    digitalWrite(pinDigital5, HIGH);
+                    digitalWrite(pinDigital6, HIGH);
+                    light_switch = false;
+                    Serial.print("licht zeit an\n");
+                    break;
+                case false:
+                    time4 = autonom[mode_menue_select].light_break + millis();
+                    digitalWrite(pinDigital4, LOW);
+                    digitalWrite(pinDigital5, LOW);
+                    digitalWrite(pinDigital6, LOW);
+                    light_switch = true;
+                    Serial.print("licht zeit aus\n");
+                
+                    break;
+                default:
+                    break;
                 }
             }
-            automatic_switch = false;
-        }
+            
 
-        //Temp & Hum check
-        if ((temperature > autonom[mode_menue_select].temperature || humidity > autonom[mode_menue_select].humidity) && time3 + 1000 < millis())
-        {
-            //Vent
-            digitalWrite(pinDigital1, HIGH);
-
-            //If it's day
-            if(!brightness)
+            //Cycle for the waterpump
+            if(millis() > time5)
             {
-                //Servo motors left & right open
-                analogWrite(pwmPin2, 50 );                
-                analogWrite(pwmPin3, 250);
+                switch (watering_switch)
+                {
+                    case true: 
+                        time5 = autonom[mode_menue_select].watering_time + millis();
+                        digitalWrite(pinDigital3, HIGH);
+                        watering_switch = false;
+                        Serial.print("Wasser AN \n");
+                        break;
+                    case false:    
+                        time5 = autonom[mode_menue_select].watering_break + millis();
+                        digitalWrite(pinDigital3, LOW);
+                        watering_switch = true;
+                        Serial.print("Wasser AUS \n");
+                        break;
+                    default:
+                        break;
+                }
             }
-            //Slow air fan
-            digitalWrite(pinDigital2, LOW);
-            time3 = millis();
-            Serial.print("TEMP/HUM zu hoch\n");
-        } 
-        else if ((temperature < autonom[mode_menue_select].temperature || humidity < autonom[mode_menue_select].humidity) && time3 + 1000 < millis())
+
+            if (millis() > time8)
+            {
+                time8 = millis() + 100;
+                automatic_switch = true;
+            }
+        }
+        else 
         {
+            //light off 
+            //digitalWrite(pinDigital4, LOW);
+            //digitalWrite(pinDigital5, LOW);
+            //digitalWrite(pinDigital6, LOW); 
+
             //Vent 
-            digitalWrite(pinDigital1, LOW);
+            //digitalWrite(pinDigital1, LOW);
 
-            //Servo motors left & right
-            analogWrite(pwmPin2, 250);             
-            analogWrite(pwmPin3, 50 );                  
-
-            //Slow air fan 
-            digitalWrite(pinDigital2, HIGH);            
-            time3 = millis();
-            Serial.print("TEMP/HUM zu niedrig\n");
-        }
-        
-        //Cycle for the light
-        if(millis() > time4)
-        {
-            time4 = autonom[mode_menue_select].light_time + millis();
-
-            if(light_switch)
-            {
-                digitalWrite(pinDigital4, HIGH);
-                digitalWrite(pinDigital5, HIGH);
-                digitalWrite(pinDigital6, HIGH);
-                light_switch = false;
-            }
-            else if (!light_switch)
-            {
-                time4 = autonom[mode_menue_select].light_break + millis();
-                digitalWrite(pinDigital4, LOW);
-                digitalWrite(pinDigital5, LOW);
-                digitalWrite(pinDigital6, LOW);
-                light_switch = true;
-            }
-        }
-
-        //Cycle for the waterpump
-        if(millis() > time5)
-        {
-            time5 = autonom[mode_menue_select].watering_time + millis();
-
-            if(watering_switch)
-            {
-                digitalWrite(pinDigital3, HIGH);
-                watering_switch = false;
-            }
-            else if (!watering_switch)
-            {
-                time5 = autonom[mode_menue_select].watering_break + millis();
-                digitalWrite(pinDigital3, LOW);
-                watering_switch = true;
-            }
-        }
-
-        if (millis() > time8)
-        {
-            time8 = millis() + 1000;
-            automatic_switch = true;
-        }
+            //umluft           
+            //digitalWrite(pinDigital2, LOW);
+            old_flag[4] = menue_toggle[4];
+        } 
     }
-    else if (menue_toggle[4] != old_flag[4])
-    {
-        old_flag[4] = menue_toggle[4];
-    } 
 
     //Menue Option 6
-    if (menue_toggle[5] != old_flag[5] && !menue_toggle[4])
+    if (menue_toggle[5] != old_flag[5])
     {
         if (menue_toggle[5])
         {   
@@ -492,9 +518,9 @@ void loop(void)
             for (int a = 0; a < mode_menue_options; a++)
             {
                 my_lcd.Set_Draw_color(MENUE_COLOUR);    
-                my_lcd.Fill_Round_Rectangle(5, 20 * (a + 1) + 15, menue_Xoffset + 110, 20 * (a + 1) + 35, 12);
+                my_lcd.Fill_Round_Rectangle(5, 20 * (a + 1) + 15, menue_Xoffset + 110, 20 * (a + 1) + 35, 3);
                 my_lcd.Set_Draw_color(BLACK);
-                my_lcd.Draw_Round_Rectangle(5, 20 * (a + 1) + 15, menue_Xoffset + 110, 20 * (a + 1) + 35, 12);
+                my_lcd.Draw_Round_Rectangle(5, 20 * (a + 1) + 15, menue_Xoffset + 110, 20 * (a + 1) + 35, 3);
                 show_string(mode_menue[a], menue_Xoffset, 20 * (a + 1) + 20, 2, BLACK, BLACK, true);
             }
             mode_menue_flag = true;
