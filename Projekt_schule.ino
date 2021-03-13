@@ -74,10 +74,10 @@ typedef struct
 {
     float temperature;
     float humidity;
-    int light_time;
-    int light_break;
-    int watering_time;
-    int watering_break;
+    unsigned long light_time;
+    unsigned long light_break;
+    unsigned long watering_time;
+    unsigned long watering_break;
 }plant_modes;
 plant_modes autonom[mode_menue_options];
 
@@ -170,7 +170,7 @@ void setup(void)
     autonom[1] = {25.0, 80.0, 1000,  3000,  10000,  5000};
     autonom[2] = {22.5, 90.0, 10000, 5000,  20000,  8000};
     autonom[3] = {25.0, 92.0, 20000, 5000,  10000,   30000};
-    autonom[4] = {25.0, 90.0, 28800000, 57600000,  10000,   86370000};
+    autonom[4] = {25.0, 90.0, 50400000, 36000000,  15000, 86370000};
 
     //Initialize Screen
     Serial.begin(9600);                                     
@@ -408,6 +408,10 @@ void loop(void)
                 if(!brightness)
                 {
                     digitalWrite(pinDigital2, HIGH);            
+                }
+                else
+                {
+                    digitalWrite(pinDigital2, LOW))
                 }
                 time3 = millis();
                 Serial.print("TEMP/HUM zu niedrig\n");
